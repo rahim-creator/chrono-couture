@@ -3,81 +3,70 @@
 @tailwind utilities;
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL. */
+All colors MUST be HSL.
+*/
 
 @layer base {
   :root {
-    /* Base surfaces */
     --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    /* Brand palette */
-    --brand: 340 72% 58%; /* Rose */
-    --brand-2: 12 92% 70%; /* Corail doux */
-    --hero-foreground: 0 0% 100%;
-
-    /* Semantic colors */
-    --primary: var(--brand);
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 224 71% 4%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 216 33% 97%;
-    --accent-foreground: 224 71% 4%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: var(--brand);
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
 
-    /* Extra tokens */
-    --canvas: 220 60% 99%;
-    --elevated: 0 0% 100%;
+    --radius: 0.5rem;
 
-    --radius: 0.75rem;
-
-    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: var(--brand);
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Motion */
-    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 5%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 6.5%;
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 6.5%;
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --brand: 260 83% 66%;
-    --brand-2: 200 95% 60%;
-    --hero-foreground: 0 0% 100%;
-
-    --primary: var(--brand);
-    --primary-foreground: 224 71% 4%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -85,23 +74,18 @@ All colors MUST be HSL. */
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 222 42% 16%;
+    --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 22%;
-    --input: 217.2 32.6% 22%;
-    --ring: var(--brand);
-
-    --canvas: 222 42% 10%;
-    --elevated: 222 42% 14%;
-    --radius: 0.75rem;
-
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: var(--brand);
+    --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
@@ -116,20 +100,6 @@ All colors MUST be HSL. */
   }
 
   body {
-    @apply bg-background text-foreground antialiased font-sans;
+    @apply bg-background text-foreground;
   }
-}
-
-/* Utilities driven by tokens */
-@layer utilities {
-  .bg-hero {
-    background-image: radial-gradient(1200px 600px at var(--x,50%) var(--y,20%), hsl(var(--brand) / 0.22), transparent 60%),
-      linear-gradient(180deg, hsl(var(--canvas)), hsl(var(--background)) 30%);
-  }
-
-  .story-link {
-    @apply relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left;
-  }
-  .hover-scale { @apply transition-transform duration-200 hover:scale-105; }
-  .pulse { @apply animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]; }
 }
