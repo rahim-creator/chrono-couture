@@ -11,6 +11,7 @@ import Recommandations from "./pages/Recommandations";
 import Historique from "./pages/Historique";
 import Profil from "./pages/Profil";
 import NotFound from "./pages/NotFound";
+import Bienvenue from "./pages/Bienvenue";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
         <Header />
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/bienvenue" element={<Bienvenue />} />
           <Route path="/garde-robe" element={<Wardrobe />} />
           <Route path="/ajout" element={<AddItemWizard />} />
           <Route path="/recommandations" element={<Recommandations />} />

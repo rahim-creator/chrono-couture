@@ -11,8 +11,8 @@ const AddItemWizard = () => {
       <SEO title="DressMe — Ajouter un vêtement" description="Assistant d'ajout en étapes : photo, catégorie, détails, style, validation." canonical="/ajout" />
       <h1 className="sr-only">Ajouter un vêtement</h1>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
+        <Card className="hover-scale">
           <CardHeader>
             <CardTitle>Photo</CardTitle>
             <CardDescription>Téléversez une image de la pièce</CardDescription>
@@ -23,7 +23,7 @@ const AddItemWizard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-scale">
           <CardHeader>
             <CardTitle>Catégorie & détails</CardTitle>
             <CardDescription>Type, couleur, saison</CardDescription>

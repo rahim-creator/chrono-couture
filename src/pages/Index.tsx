@@ -39,7 +39,7 @@ const Index = () => {
     <main>
       <SEO title="DressMe — Dashboard quotidien" description="Déclarez votre humeur, météo et événement pour obtenir des recommandations de tenues instantanées." canonical="/" />
 
-      <section className="bg-hero">
+      <section className="bg-hero animate-fade-in">
         <div className="container py-14" onMouseMove={(e) => {
           const el = e.currentTarget as HTMLElement;
           const rect = el.getBoundingClientRect();

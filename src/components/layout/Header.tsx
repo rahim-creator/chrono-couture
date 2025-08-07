@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
+  { to: "/bienvenue", label: "Bienvenue" },
   { to: "/", label: "Accueil" },
   { to: "/garde-robe", label: "Ma garde-robe" },
   { to: "/ajout", label: "Ajouter" },
