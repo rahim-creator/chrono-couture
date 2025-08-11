@@ -20,7 +20,7 @@ type UploadDropzoneProps = {
   onChange?: (items: UploadResult[]) => void;
 };
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+const ACCEPTED_TYPES = ['image/*'];
 
 export default function UploadDropzone({ autoRemoveBackground = true, onChange }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,8 +29,9 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const filesArr = Array.from(files);
-    const accepted = filesArr.filter((f) => ACCEPTED_TYPES.includes(f.type));
-    const rejected = filesArr.filter((f) => !ACCEPTED_TYPES.includes(f.type));
+    const isImage = (f: File) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name);
+    const accepted = filesArr.filter(isImage);
+    const rejected = filesArr.filter((f) => !isImage(f));
     if (rejected.length) {
       toast.error(`Format non supporté: ${rejected.slice(0, 3).map((f) => f.name).join(", ")}${rejected.length > 3 ? "…" : ""}`);
     }
@@ -142,7 +143,7 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPTED_TYPES.join(',')}
+          accept="image/*"
           multiple
           className="hidden"
           onChange={(e) => e.target.files && handleFiles(e.target.files)}

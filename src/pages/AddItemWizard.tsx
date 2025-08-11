@@ -40,7 +40,7 @@ const AddItemWizard = () => {
   const onSubmit = (values: FormValues) => {
     // For now, just log and simulate save
     console.log("Enregistrement", { values, uploads });
-    alert("Vêtement enregistré localement (démo).");
+    toast.success("Vêtement enregistré (démo)");
   };
 
   return (
@@ -56,9 +56,7 @@ const AddItemWizard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <UploadDropzone autoRemoveBackground onChange={setUploads} />
-            <Button variant="outline" type="button" className="w-full" disabled title="Bientôt disponible">
-              Scanner l'étiquette (à venir)
-            </Button>
+              {/* Scanner l'étiquette masqué pour éviter la confusion */}
             {insights?.pattern && (
               <div className="text-sm text-muted-foreground">
                 Motif détecté: <span className="font-medium">{insights.pattern === "uni" ? "Uni" : insights.pattern === "motif" ? "Motif" : "Texturé"}</span>
