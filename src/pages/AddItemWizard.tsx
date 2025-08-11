@@ -12,11 +12,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Sun, Snowflake, CloudSun, Sparkles } from "lucide-react";
-
+import { Badge } from "@/components/ui/badge";
+import ColorPalettePicker from "@/components/ColorPalettePicker";
+import { useImageInsights } from "@/hooks/useImageInsights";
 const formSchema = z.object({
   type: z.enum(["haut", "bas", "chaussures"], { required_error: "Type requis" }),
   color: z.string().min(1, "Couleur requise"),
   season: z.enum(["toutes", "ete", "hiver", "mi-saison"], { required_error: "Saison requise" }),
+  tags: z.array(z.string()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -27,8 +30,10 @@ const AddItemWizard = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
-    defaultValues: { type: undefined as unknown as FormValues["type"], color: "#d946ef", season: "toutes" },
+    defaultValues: { type: undefined as unknown as FormValues["type"], color: "#d946ef", season: "toutes", tags: [] },
   });
+
+  const { insights, loading: aiLoading, error: aiError } = useImageInsights(uploads);
 
   const onSubmit = (values: FormValues) => {
     // For now, just log and simulate save
@@ -52,6 +57,11 @@ const AddItemWizard = () => {
             <Button variant="outline" type="button" className="w-full" onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]').click()}>
               Scanner l'étiquette (à venir)
             </Button>
+            {insights?.pattern && (
+              <div className="text-sm text-muted-foreground">
+                Motif détecté: <span className="font-medium">{insights.pattern === "uni" ? "Uni" : insights.pattern === "motif" ? "Motif" : "Texturé"}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -61,6 +71,24 @@ const AddItemWizard = () => {
             <CardDescription>Structure en une colonne, champs clairs, validation en direct</CardDescription>
           </CardHeader>
           <CardContent>
+            {insights && (
+              <div className="mb-4 rounded-md border p-3 text-sm">
+                {insights.categorySuggestion && (
+                  <div className="flex items-center gap-2">
+                    <span>Catégorie suggérée:</span>
+                    <Badge variant="secondary">{insights.categorySuggestion === "haut" ? "Haut" : insights.categorySuggestion === "bas" ? "Bas" : "Chaussures"}</Badge>
+                    <Button type="button" size="sm" variant="outline" onClick={() => form.setValue("type", insights.categorySuggestion!)}>Appliquer</Button>
+                  </div>
+                )}
+                {insights.seasonSuggestion && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span>Saison suggérée:</span>
+                    <Badge variant="secondary">{insights.seasonSuggestion === "ete" ? "Été" : insights.seasonSuggestion === "hiver" ? "Hiver" : insights.seasonSuggestion === "mi-saison" ? "Mi-saison" : "Toutes"}</Badge>
+                    <Button type="button" size="sm" variant="outline" onClick={() => form.setValue("season", insights.seasonSuggestion!)}>Appliquer</Button>
+                  </div>
+                )}
+              </div>
+            )}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
                 <FormField
@@ -93,16 +121,46 @@ const AddItemWizard = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Couleur dominante <span aria-hidden className="text-destructive">*</span></FormLabel>
-                      <div className="flex items-center gap-3">
-                        <Input type="color" aria-label="Choisir une couleur" className="h-10 w-14 p-1" value={field.value} onChange={field.onChange} />
-                        <Input placeholder="#112233" value={field.value} onChange={field.onChange} />
-                      </div>
-                      <FormDescription>Utilisez le sélecteur ou saisissez un code HEX.</FormDescription>
+                      <ColorPalettePicker palette={insights?.palette ?? [field.value]} value={field.value} onChange={(hex) => field.onChange(hex)} />
+                      <FormDescription>Choisissez depuis la palette détectée automatiquement.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags suggérés</FormLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {(insights?.tags ?? []).slice(0, 8).map((tag) => {
+                          const selected = (field.value ?? []).includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => {
+                                const curr: string[] = field.value ?? [];
+                                field.onChange(selected ? curr.filter((t) => t !== tag) : [...curr, tag]);
+                              }}
+                              className={`rounded-full border px-3 py-1 text-xs transition ${
+                                selected ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"
+                              }`}
+                              aria-pressed={selected}
+                              aria-label={`Tag ${tag}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <FormDescription>Ajoutez des tags pour faciliter la recherche.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="season"
