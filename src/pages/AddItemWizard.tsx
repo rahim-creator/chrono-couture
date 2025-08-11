@@ -33,7 +33,7 @@ const AddItemWizard = () => {
     defaultValues: { type: undefined as unknown as FormValues["type"], color: "#d946ef", season: "toutes", tags: [] },
   });
 
-  const { insights, loading: aiLoading, error: aiError } = useImageInsights(uploads);
+  const { insights } = useImageInsights(uploads);
 
   const onSubmit = (values: FormValues) => {
     // For now, just log and simulate save

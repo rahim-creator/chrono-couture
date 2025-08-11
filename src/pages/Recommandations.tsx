@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { getPreferences, scoreGarment, updateWithLook } from "@/lib/preferences";
+import { useWeather } from "@/hooks/useWeather";
 
 type Context = { city?: string; temp?: number | null; mood?: string; event?: string; date?: string };
 
@@ -21,6 +24,7 @@ const MOCK_WARDROBE: Garment[] = [
 ];
 
 function generateLooks(ctx: Context, wardrobe: Garment[], n = 3): Look[] {
+  const prefs = getPreferences();
   const filterByEvent = (g: Garment) => {
     if (ctx.event === "sport") return g.formality === "sport"; // none in mock
     if (ctx.event === "travail") return g.formality !== "sport";
@@ -28,13 +32,25 @@ function generateLooks(ctx: Context, wardrobe: Garment[], n = 3): Look[] {
   };
 
   const pool = wardrobe.filter(filterByEvent);
+  const pickBest = (type: Garment["type"]) => {
+    const candidates = pool.filter((g) => g.type === type);
+    if (candidates.length === 0) return wardrobe.find((g) => g.type === type)!;
+    return candidates.sort((a, b) => scoreGarment(b, prefs) - scoreGarment(a, prefs))[0];
+  };
+
   const looks: Look[] = [];
   for (let i = 0; i < n; i++) {
-    const top = pool.find((g) => g.type === "haut") ?? wardrobe.find((g) => g.type === "haut")!;
-    const bottom = pool.find((g) => g.type === "bas") ?? wardrobe.find((g) => g.type === "bas")!;
-    const shoes = pool.find((g) => g.type === "chaussures") ?? wardrobe.find((g) => g.type === "chaussures")!;
+    const top = pickBest("haut");
+    const bottom = pickBest("bas");
+    const shoes = pickBest("chaussures");
 
-    const note = ctx.mood === "énergique" ? "Couleurs vives pour soutenir votre énergie" : ctx.event === "travail" ? "Business casual confortable" : "Association harmonieuse et polyvalente";
+    const note = typeof ctx.temp === 'number'
+      ? ctx.temp < 10
+        ? "Couche chaude recommandée — teintes sobres"
+        : ctx.temp > 25
+          ? "Matières légères et respirantes"
+          : "Confort mi-saison"
+      : ctx.event === "travail" ? "Business casual confortable" : "Association harmonieuse et polyvalente";
 
     looks.push({ id: `${i}`, items: [top, bottom, shoes], note });
   }
@@ -49,9 +65,7 @@ const Swatch = ({ color, label }: { color: string; label: string }) => (
 );
 
 const Recommandations = () => {
-  const ctx: Context = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("dressme:context") || "{}") } catch { return {} }
-  }, []);
+  const { ctx } = useWeather();
 
   const [seed, setSeed] = useState(0);
   const looks = useMemo(() => generateLooks(ctx, MOCK_WARDROBE, 3), [ctx, seed]);
@@ -65,7 +79,7 @@ const Recommandations = () => {
         <p className="text-muted-foreground">Contexte: {ctx.city || "—"} {typeof ctx.temp === 'number' ? `• ${ctx.temp}°C` : ''} {ctx.mood ? `• ${ctx.mood}` : ''} {ctx.event ? `• ${ctx.event}` : ''}</p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setSeed((s) => s + 1)}>Alternatives</Button>
-          <Button variant="hero">Valider un look</Button>
+          <Button variant="hero" onClick={() => { if (looks[0]) { updateWithLook(looks[0]); toast.success("Préférences mises à jour"); } }}>Valider le 1er look</Button>
         </div>
       </div>
 
@@ -83,6 +97,7 @@ const Recommandations = () => {
                     <Swatch color={look.items[0].color} label="Haut" />
                     <Swatch color={look.items[1].color} label="Bas" />
                     <Swatch color={look.items[2].color} label="Chaussures" />
+                    <Button variant="secondary" onClick={() => { updateWithLook(look); toast.success("Préférences mises à jour"); }}>Valider ce look</Button>
                   </CardContent>
                 </Card>
               </CarouselItem>
