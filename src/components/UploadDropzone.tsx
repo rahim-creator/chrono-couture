@@ -3,6 +3,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { loadImage, removeBackground } from '@/lib/background';
 import { Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export type UploadResult = {
   id: string;
@@ -19,7 +20,7 @@ type UploadDropzoneProps = {
   onChange?: (items: UploadResult[]) => void;
 };
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 export default function UploadDropzone({ autoRemoveBackground = true, onChange }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,11 +28,16 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
   const [dragActive, setDragActive] = useState(false);
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => ACCEPTED_TYPES.includes(f.type));
-    if (!arr.length) return;
+    const filesArr = Array.from(files);
+    const accepted = filesArr.filter((f) => ACCEPTED_TYPES.includes(f.type));
+    const rejected = filesArr.filter((f) => !ACCEPTED_TYPES.includes(f.type));
+    if (rejected.length) {
+      toast.error(`Format non supporté: ${rejected.slice(0, 3).map((f) => f.name).join(", ")}${rejected.length > 3 ? "…" : ""}`);
+    }
+    if (!accepted.length) return;
 
     // Initialize items with previews
-    const newItems: UploadResult[] = arr.map((file) => ({
+    const newItems: UploadResult[] = accepted.map((file) => ({
       id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       file,
       originalUrl: URL.createObjectURL(file),
@@ -123,7 +129,13 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
         <ImageIcon className="mb-2 h-8 w-8 text-muted-foreground" aria-hidden />
         <p className="text-sm text-muted-foreground">
           Glissez-déposez vos images ici, ou
-          <span className="mx-1 font-medium text-primary underline"> parcourez</span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onBrowse(); }}
+            className="mx-1 font-medium text-primary underline"
+          >
+            parcourir
+          </button>
           vos fichiers
         </p>
         <p className="mt-1 text-xs text-muted-foreground/80">JPEG, PNG, WEBP — upload multiple autorisé</p>

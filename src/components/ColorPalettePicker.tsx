@@ -1,4 +1,5 @@
 import React from "react";
+import { Check } from "lucide-react";
 
 type ColorPalettePickerProps = {
   palette: string[];
@@ -17,13 +18,16 @@ export default function ColorPalettePicker({ palette, value, onChange }: ColorPa
             key={hex}
             type="button"
             onClick={() => onChange?.(hex)}
-            className={`relative h-8 w-8 rounded-full ring-offset-background transition focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${selected ? 'ring-2 ring-primary' : ''}`}
+            className={`relative h-9 w-9 rounded-full ring-offset-background transition focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${selected ? 'ring-2 ring-primary' : 'ring-0'}`}
             aria-label={`Choisir la couleur ${hex}`}
+            aria-pressed={selected}
             title={hex}
             style={{ backgroundColor: hex }}
           >
             {selected && (
-              <span className="absolute -right-1 -top-1 inline-flex h-3 w-3 items-center justify-center rounded-full bg-primary"></span>
+              <span className="absolute inset-0 grid place-items-center">
+                <Check className="h-4 w-4 text-primary-foreground" />
+              </span>
             )}
           </button>
         );

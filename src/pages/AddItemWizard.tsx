@@ -15,6 +15,7 @@ import { Sun, Snowflake, CloudSun, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ColorPalettePicker from "@/components/ColorPalettePicker";
 import { useImageInsights } from "@/hooks/useImageInsights";
+import { toast } from "sonner";
 const formSchema = z.object({
   type: z.enum(["haut", "bas", "chaussures"], { required_error: "Type requis" }),
   color: z.string().min(1, "Couleur requise"),
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 const AddItemWizard = () => {
   const [uploads, setUploads] = React.useState<UploadResult[]>([]);
+  const [newTag, setNewTag] = React.useState<string>("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,7 +56,7 @@ const AddItemWizard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <UploadDropzone autoRemoveBackground onChange={setUploads} />
-            <Button variant="outline" type="button" className="w-full" onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]').click()}>
+            <Button variant="outline" type="button" className="w-full" disabled title="Bientôt disponible">
               Scanner l'étiquette (à venir)
             </Button>
             {insights?.pattern && (
@@ -90,14 +92,14 @@ const AddItemWizard = () => {
               </div>
             )}
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+              <form onSubmit={form.handleSubmit(onSubmit, () => toast.error("Veuillez remplir les champs obligatoires"))} className="grid gap-5">
                 <FormField
                   control={form.control}
                   name="type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Type <span aria-hidden className="text-destructive">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Haut, Bas, Chaussures…" />
@@ -121,7 +123,7 @@ const AddItemWizard = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Couleur dominante <span aria-hidden className="text-destructive">*</span></FormLabel>
-                      <ColorPalettePicker palette={insights?.palette ?? [field.value]} value={field.value} onChange={(hex) => field.onChange(hex)} />
+                      <ColorPalettePicker palette={(insights?.palette && insights.palette.length > 0) ? insights.palette : ['#111827','#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#f5f5f5']} value={field.value} onChange={(hex) => field.onChange(hex)} />
                       <FormDescription>Choisissez depuis la palette détectée automatiquement.</FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -134,6 +136,23 @@ const AddItemWizard = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tags suggérés</FormLabel>
+                      {(field.value ?? []).length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {(field.value ?? []).map((tag) => (
+                            <Badge key={tag} variant="secondary" className="pl-2">
+                              {tag}
+                              <button
+                                type="button"
+                                className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/20"
+                                aria-label={`Retirer ${tag}`}
+                                onClick={() => field.onChange((field.value ?? []).filter((t) => t !== tag))}
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-2">
                         {(insights?.tags ?? []).slice(0, 8).map((tag) => {
                           const selected = (field.value ?? []).includes(tag);
@@ -145,9 +164,7 @@ const AddItemWizard = () => {
                                 const curr: string[] = field.value ?? [];
                                 field.onChange(selected ? curr.filter((t) => t !== tag) : [...curr, tag]);
                               }}
-                              className={`rounded-full border px-3 py-1 text-xs transition ${
-                                selected ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"
-                              }`}
+                              className={`rounded-full border px-3 py-1 text-xs transition ${selected ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
                               aria-pressed={selected}
                               aria-label={`Tag ${tag}`}
                             >
@@ -155,6 +172,35 @@ const AddItemWizard = () => {
                             </button>
                           );
                         })}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <Input
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          placeholder="Ajouter un tag…"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newTag.trim()) {
+                              e.preventDefault();
+                              const curr: string[] = field.value ?? [];
+                              const next = curr.includes(newTag.trim()) ? curr : [...curr, newTag.trim()];
+                              field.onChange(next);
+                              setNewTag("");
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            if (!newTag.trim()) return;
+                            const curr: string[] = field.value ?? [];
+                            const next = curr.includes(newTag.trim()) ? curr : [...curr, newTag.trim()];
+                            field.onChange(next);
+                            setNewTag("");
+                          }}
+                        >
+                          Ajouter
+                        </Button>
                       </div>
                       <FormDescription>Ajoutez des tags pour faciliter la recherche.</FormDescription>
                       <FormMessage />
@@ -168,7 +214,7 @@ const AddItemWizard = () => {
                     <FormItem>
                       <FormLabel>Saison <span aria-hidden className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                           <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent">
                             <RadioGroupItem value="toutes" id="toutes" />
                             <Sparkles className="h-4 w-4" />
