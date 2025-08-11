@@ -3,6 +3,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { loadImage, removeBackground } from '@/lib/background';
 import { compressImageFile } from '@/lib/imageCompression';
+import { removeBackgroundPreferred } from '@/lib/removeBgProviders';
 import { Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -130,8 +131,19 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
 
       // Suppression (background)
       mark({ step: 'suppression' });
-      const bgBlob = await removeBackground(img);
+      let bgBlob: Blob;
+      const tBg0 = performance.now();
+      try {
+        const res = await removeBackgroundPreferred(comp.blob);
+        bgBlob = res.blob;
+        console.info('[BG] Provider utilisé:', res.provider, 'durée:', Math.round(res.durationMs), 'ms');
+      } catch (err) {
+        console.warn('[BG] EdenAI indisponible, fallback local', err);
+        bgBlob = await removeBackground(img);
+      }
       if (abortMapRef.current.get(id)) return;
+      const tBg = performance.now() - tBg0;
+      console.info('[BG] Temps total suppression:', Math.round(tBg), 'ms');
       mark({ progress: 85, etaMs: estimate(comp.compressedSize, 'finalisation') });
 
       // Finalisation
