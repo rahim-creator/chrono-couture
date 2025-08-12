@@ -17,6 +17,7 @@ import ColorPalettePicker from "@/components/ColorPalettePicker";
 import { useExtendedImageInsights } from "@/hooks/useExtendedImageInsights";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
 const enhancedFormSchema = z.object({
   type: z.enum(["haut", "bas", "chaussures"], { required_error: "Type requis" }),
   color: z.string().min(1, "Couleur requise"),
@@ -86,25 +87,25 @@ const AddItemWizard = () => {
       if (upErr) throw upErr;
 
       // Save metadata (no public URL stored since bucket is private)
-    const { error: insErr } = await supabase.from('wardrobe_items').insert({
-      user_id: user.id,
-      type: values.type,
-      color: values.color,
-      season: values.season,
-      formality: values.formality,
-      tags: values.tags ?? [],
-      image_path: path,
-      // Nouveaux champs
-      brand: values.brand,
-      size: values.size,
-      material: values.material,
-      pattern: values.pattern,
-      fit: values.fit,
-      condition: values.condition,
-      purchase_date: values.purchase_date,
-      versatility_score: values.versatility_score,
-      weight: values.weight,
-    });
+      const { error: insErr } = await supabase.from('wardrobe_items').insert({
+        user_id: user.id,
+        type: values.type,
+        color: values.color,
+        season: values.season,
+        formality: values.formality,
+        tags: values.tags ?? [],
+        image_path: path,
+        // Nouveaux champs
+        brand: values.brand,
+        size: values.size,
+        material: values.material,
+        pattern: values.pattern,
+        fit: values.fit,
+        condition: values.condition,
+        purchase_date: values.purchase_date,
+        versatility_score: values.versatility_score,
+        weight: values.weight,
+      });
       if (insErr) throw insErr;
 
       toast.success("Item saved to your wardrobe");
@@ -127,7 +128,6 @@ const AddItemWizard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <UploadDropzone autoRemoveBackground onChange={setUploads} />
-              {/* Scanner l'étiquette masqué pour éviter la confusion */}
             {insights?.pattern && (
               <div className="text-sm text-muted-foreground">
                 Motif détecté: <span className="font-medium">{insights.pattern === "uni" ? "Uni" : insights.pattern === "motif" ? "Motif" : "Texturé"}</span>
@@ -212,6 +212,7 @@ const AddItemWizard = () => {
                 </div>
               </div>
             )}
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit, () => toast.error("Veuillez remplir les champs obligatoires"))} className="grid gap-5">
                 <FormField
@@ -328,6 +329,7 @@ const AddItemWizard = () => {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="season"
@@ -404,7 +406,7 @@ const AddItemWizard = () => {
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Coton, Laine, Polyester..." />
+                              <SelectValue />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -418,57 +420,62 @@ const AddItemWizard = () => {
                             <SelectItem value="cuir">Cuir</SelectItem>
                           </SelectContent>
                         </Select>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="pattern"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Motif</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="uni">Uni</SelectItem>
-                            <SelectItem value="rayé">Rayé</SelectItem>
-                            <SelectItem value="imprimé">Imprimé</SelectItem>
-                            <SelectItem value="à pois">À pois</SelectItem>
-                            <SelectItem value="carreaux">Carreaux</SelectItem>
-                            <SelectItem value="floral">Floral</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="fit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Coupe</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="slim">Slim</SelectItem>
-                            <SelectItem value="regular">Regular</SelectItem>
-                            <SelectItem value="loose">Loose</SelectItem>
-                            <SelectItem value="oversized">Oversized</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="pattern"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Motif</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="uni">Uni</SelectItem>
+                              <SelectItem value="rayé">Rayé</SelectItem>
+                              <SelectItem value="imprimé">Imprimé</SelectItem>
+                              <SelectItem value="à pois">À pois</SelectItem>
+                              <SelectItem value="carreaux">Carreaux</SelectItem>
+                              <SelectItem value="floral">Floral</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="fit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Coupe</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="slim">Slim</SelectItem>
+                              <SelectItem value="regular">Regular</SelectItem>
+                              <SelectItem value="loose">Loose</SelectItem>
+                              <SelectItem value="oversized">Oversized</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -488,6 +495,7 @@ const AddItemWizard = () => {
                             <SelectItem value="épais">Épais</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -497,44 +505,48 @@ const AddItemWizard = () => {
                 <div className="space-y-4 border-t pt-4">
                   <h3 className="font-medium">Informations complémentaires</h3>
                   
-                  <FormField
-                    control={form.control}
-                    name="brand"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Marque</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Zara, H&M, Nike..." {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Taille</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="brand"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Marque</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner la taille..." />
-                            </SelectTrigger>
+                            <Input placeholder="Zara, H&M, Nike..." {...field} />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="XS">XS</SelectItem>
-                            <SelectItem value="S">S</SelectItem>
-                            <SelectItem value="M">M</SelectItem>
-                            <SelectItem value="L">L</SelectItem>
-                            <SelectItem value="XL">XL</SelectItem>
-                            <SelectItem value="XXL">XXL</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="size"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Taille</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="XS, S, M..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="XS">XS</SelectItem>
+                              <SelectItem value="S">S</SelectItem>
+                              <SelectItem value="M">M</SelectItem>
+                              <SelectItem value="L">L</SelectItem>
+                              <SelectItem value="XL">XL</SelectItem>
+                              <SelectItem value="XXL">XXL</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="condition"
@@ -553,6 +565,7 @@ const AddItemWizard = () => {
                             <SelectItem value="usé">Usé</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -570,6 +583,7 @@ const AddItemWizard = () => {
                             placeholder="YYYY-MM-DD"
                           />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -592,6 +606,7 @@ const AddItemWizard = () => {
                         <FormDescription>
                           Évaluez la facilité d'association de ce vêtement (50 = moyen)
                         </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

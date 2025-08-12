@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { getPreferences, scoreGarment, updateWithLook } from "@/lib/preferences";
 import { useWeather } from "@/hooks/useWeather";
 import { supabase } from "@/integrations/supabase/client";
-import { EnhancedWardrobeItem } from "@/types/wardrobe";
+import { generateEnhancedLooks as generateEnhancedLooksLib } from "@/lib/enhancedRecommendations";
+import type { EnhancedWardrobeItem, EnhancedLook } from "@/types/enhanced-wardrobe";
+import { Badge } from "@/components/ui/badge";
 
 type Context = { city?: string; temp?: number | null; mood?: string; event?: string; date?: string };
 
@@ -213,7 +215,9 @@ const Recommandations = () => {
     fetchWardrobe();
   }, []);
 
-  const looks = useMemo(() => generateEnhancedLooks(ctx, userWardrobe, 3), [ctx, userWardrobe, seed]);
+  const looks = useMemo(() => {
+    return generateEnhancedLooks(ctx, userWardrobe, 3);
+  }, [ctx, userWardrobe, seed]);
 
   if (loading) {
     return (
