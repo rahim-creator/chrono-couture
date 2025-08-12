@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 type Ctx = { city?: string; temp?: number | null; mood?: string; event?: string; date?: string };
 
@@ -19,40 +19,61 @@ export function useWeather() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchWeatherData = useCallback(async () => {
     let cancelled = false;
-    async function run() {
-      setLoading(true); setError(null);
+    setLoading(true); 
+    setError(null);
+    
+    try {
+      const coords = await new Promise<GeolocationPosition | { coords: { latitude: number; longitude: number } }>((resolve) => {
+        if (!navigator.geolocation) return resolve({ coords: { latitude: 48.8566, longitude: 2.3522 } });
+        navigator.geolocation.getCurrentPosition(
+          resolve, 
+          () => resolve({ coords: { latitude: 48.8566, longitude: 2.3522 } }), 
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      });
+      
+      const lat = (coords as any).coords.latitude;
+      const lon = (coords as any).coords.longitude;
+      
+      const wx = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`)
+        .then(r => r.json());
+      
+      const temp = wx?.current?.temperature_2m ?? null;
+      const code = wx?.current?.weather_code;
+      
+      let city: string | undefined = undefined;
       try {
-        const coords = await new Promise<GeolocationPosition | { coords: { latitude: number; longitude: number } }>((resolve) => {
-          if (!navigator.geolocation) return resolve({ coords: { latitude: 48.8566, longitude: 2.3522 } });
-          navigator.geolocation.getCurrentPosition(resolve, () => resolve({ coords: { latitude: 48.8566, longitude: 2.3522 } }), { enableHighAccuracy: true, timeout: 5000 });
-        });
-        const lat = (coords as any).coords.latitude;
-        const lon = (coords as any).coords.longitude;
-        const wx = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`).then(r => r.json());
-        const temp = wx?.current?.temperature_2m ?? null;
-        const code = wx?.current?.weather_code;
-        let city: string | undefined = undefined;
-        try {
-          const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`).then(r => r.json());
-          city = rev?.address?.city || rev?.address?.town || rev?.address?.village || rev?.address?.municipality || rev?.display_name?.split(',')[0];
-        } catch {}
-        const next: Ctx = { city: city || ctx.city || "Local", temp, mood: codeToMood(code), event: ctx.event || "quotidien", date: new Date().toISOString() };
-        if (!cancelled) {
-          setCtx(next);
-          try { sessionStorage.setItem("dressme:context", JSON.stringify(next)); } catch {}
-        }
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? "Météo indisponible");
-      } finally {
-        if (!cancelled) setLoading(false);
+        const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+          .then(r => r.json());
+        city = rev?.address?.city || rev?.address?.town || rev?.address?.village || rev?.address?.municipality || rev?.display_name?.split(',')[0];
+      } catch {}
+      
+      const next: Ctx = { 
+        city: city || ctx.city || "Local", 
+        temp, 
+        mood: codeToMood(code), 
+        event: ctx.event || "quotidien", 
+        date: new Date().toISOString() 
+      };
+      
+      if (!cancelled) {
+        setCtx(next);
+        try { sessionStorage.setItem("dressme:context", JSON.stringify(next)); } catch {}
       }
+    } catch (e: any) {
+      if (!cancelled) setError(e?.message ?? "Météo indisponible");
+    } finally {
+      if (!cancelled) setLoading(false);
     }
-    void run();
+    
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx.city, ctx.event]);
+
+  useEffect(() => {
+    fetchWeatherData();
   }, []);
 
-  return { ctx, loading, error };
+  return { ctx, loading, error, refresh: fetchWeatherData };
 }

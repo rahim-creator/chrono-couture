@@ -1,11 +1,15 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, Thermometer, RefreshCw } from "lucide-react";
 import SEO from "@/components/SEO";
+import { useWeather } from "@/hooks/useWeather";
+import { toast } from "sonner";
 
 const moods = [
   { value: "neutre", label: "Neutre" },
@@ -24,15 +28,43 @@ const events = [
 
 const Index = () => {
   const navigate = useNavigate();
+  const { ctx: weatherCtx, loading: weatherLoading, error: weatherError, refresh } = useWeather();
+  
+  // États pour les champs du formulaire
   const [city, setCity] = useState("");
   const [temp, setTemp] = useState<number | ''>('');
   const [mood, setMood] = useState("neutre");
   const [event, setEvent] = useState("travail");
+  const [useAutoWeather, setUseAutoWeather] = useState(true);
+
+  // Synchroniser avec les données météo automatiques
+  useEffect(() => {
+    if (weatherCtx && useAutoWeather) {
+      if (weatherCtx.city) setCity(weatherCtx.city);
+      if (typeof weatherCtx.temp === 'number') setTemp(weatherCtx.temp);
+      if (weatherCtx.mood) setMood(weatherCtx.mood);
+      if (weatherCtx.event) setEvent(weatherCtx.event);
+    }
+  }, [weatherCtx, useAutoWeather]);
 
   const handlePropose = () => {
-    const context = { city, temp: temp === '' ? null : Number(temp), mood, event, date: new Date().toISOString() };
+    const context = { 
+      city: city || weatherCtx?.city || "Local", 
+      temp: temp === '' ? (weatherCtx?.temp || null) : Number(temp), 
+      mood, 
+      event, 
+      date: new Date().toISOString() 
+    };
     sessionStorage.setItem("dressme:context", JSON.stringify(context));
     navigate("/recommandations");
+  };
+
+  const refreshWeather = () => {
+    if (refresh) {
+      refresh();
+    } else {
+      window.location.reload(); // Fallback si refresh n'est pas disponible
+    }
   };
 
   return (
@@ -52,30 +84,97 @@ const Index = () => {
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Recommandations de tenues personnalisées</h1>
             <p className="mt-3 text-lg text-muted-foreground">Dites-nous votre humeur, la météo et votre contexte. DressMe s'occupe du look.</p>
             <div className="mt-6 flex justify-center">
-              <Button variant="hero" size="lg" onClick={handlePropose} aria-label="Proposer une tenue maintenant">Proposer une tenue</Button>
+              <Button variant="hero" size="lg" onClick={handlePropose} aria-label="Proposer une tenue maintenant">
+                Proposer une tenue
+              </Button>
             </div>
           </div>
         </div>
       </section>
 
       <section className="container grid gap-6 py-10 md:grid-cols-3">
+        {/* Carte Météo avec API automatique */}
         <Card className="group">
           <CardHeader>
-            <CardTitle>Météo</CardTitle>
-            <CardDescription>Ville et température</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Météo
+                </CardTitle>
+                <CardDescription>Localisation et température</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshWeather}
+                  disabled={weatherLoading}
+                  className="h-8 w-8 p-0"
+                >
+                  <RefreshCw className={`h-4 w-4 ${weatherLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-weather"
+                checked={useAutoWeather}
+                onCheckedChange={setUseAutoWeather}
+              />
+              <Label htmlFor="auto-weather" className="text-sm">
+                Détection automatique
+              </Label>
+            </div>
+
+            {weatherError && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                {weatherError}
+              </div>
+            )}
+
             <div className="grid gap-2">
               <Label htmlFor="city">Ville</Label>
-              <Input id="city" placeholder="Paris, Lyon..." value={city} onChange={(e) => setCity(e.target.value)} />
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input 
+                  id="city" 
+                  placeholder={useAutoWeather ? (weatherCtx?.city || "Détection...") : "Paris, Lyon..."} 
+                  value={useAutoWeather ? (weatherCtx?.city || "") : city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={useAutoWeather}
+                  className="pl-9"
+                />
+              </div>
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="temp">Température (°C)</Label>
-              <Input id="temp" type="number" placeholder="Auto" value={temp ?? ''} onChange={(e) => setTemp(e.target.value === '' ? '' : Number(e.target.value))} />
+              <div className="relative">
+                <Thermometer className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input 
+                  id="temp" 
+                  type="number" 
+                  placeholder={useAutoWeather ? (weatherCtx?.temp?.toString() || "Auto") : "Auto"}
+                  value={useAutoWeather ? (weatherCtx?.temp || '') : (temp ?? '')}
+                  onChange={(e) => setTemp(e.target.value === '' ? '' : Number(e.target.value))}
+                  disabled={useAutoWeather}
+                  className="pl-9"
+                />
+              </div>
             </div>
+
+            {weatherCtx?.mood && useAutoWeather && (
+              <div className="text-xs text-muted-foreground bg-accent/50 p-2 rounded">
+                Conditions détectées : {weatherCtx.mood}
+              </div>
+            )}
           </CardContent>
         </Card>
 
+        {/* Carte Humeur */}
         <Card>
           <CardHeader>
             <CardTitle>Humeur</CardTitle>
@@ -96,6 +195,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
+        {/* Carte Événement */}
         <Card>
           <CardHeader>
             <CardTitle>Événement</CardTitle>
@@ -121,6 +221,11 @@ const Index = () => {
         <div className="rounded-lg border bg-card p-6">
           <h2 className="text-xl font-semibold">Statistiques rapides</h2>
           <p className="text-muted-foreground mt-1">À venir : fréquence d'utilisation des pièces et looks préférés.</p>
+          {weatherCtx && (
+            <div className="mt-4 text-sm text-muted-foreground">
+              Dernière mise à jour météo : {new Date(weatherCtx.date || Date.now()).toLocaleTimeString()}
+            </div>
+          )}
         </div>
       </section>
     </main>
