@@ -77,6 +77,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          cold_threshold: number | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          preferred_color: string | null
+          preferred_formality: string | null
+          updated_at: string
+          user_id: string
+          warm_threshold: number | null
+        }
+        Insert: {
+          cold_threshold?: number | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          preferred_color?: string | null
+          preferred_formality?: string | null
+          updated_at?: string
+          user_id: string
+          warm_threshold?: number | null
+        }
+        Update: {
+          cold_threshold?: number | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          preferred_color?: string | null
+          preferred_formality?: string | null
+          updated_at?: string
+          user_id?: string
+          warm_threshold?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
