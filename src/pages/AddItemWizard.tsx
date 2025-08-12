@@ -55,7 +55,7 @@ const AddItemWizard = () => {
     },
   });
 
-  const { insights } = useExtendedImageInsights(uploads);
+  const { insights, loading, error } = useExtendedImageInsights(uploads);
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -165,7 +165,11 @@ const AddItemWizard = () => {
                 🤖 Classification automatique complète
               </Button>
 
-              {!insights ? (
+              {loading ? (
+                <p className="text-muted-foreground">Analyse IA en cours… (téléchargement du modèle la 1ère fois, ~30–60s)</p>
+              ) : error ? (
+                <p className="text-destructive">Analyse impossible: {error}</p>
+              ) : !insights ? (
                 <p className="text-muted-foreground">Téléversez une photo pour obtenir des suggestions IA (matière, marque, état, coupe…)</p>
               ) : (
                 <div className="grid grid-cols-1 gap-2">
@@ -211,6 +215,7 @@ const AddItemWizard = () => {
                   )}
                 </div>
               )}
+
             </div>
 
             <Form {...form}>
