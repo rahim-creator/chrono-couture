@@ -1,6 +1,6 @@
 // EdenAI remove background client helpers
 // This expects a Supabase Edge Function named "edenai-remove-bg" that uses the EDENAI_API_KEY secret.
-// The function should accept: { provider: 'api4ai'|'remove-bg', image: string(base64 data url) }
+// The function should accept: { provider: 'clipdrop'|'photoroom', image: string(base64 data url) }
 // And return: { image: string(data url PNG), durationMs: number }
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
-async function callEdgeRemoveBG(provider: 'api4ai' | 'remove_bg', image: Blob, signal?: AbortSignal) {
+async function callEdgeRemoveBG(provider: 'clipdrop' | 'photoroom', image: Blob, signal?: AbortSignal) {
   const body = {
     provider,
     image: await blobToDataURL(image),
@@ -64,18 +64,18 @@ async function retry<T>(fn: () => Promise<T>, attempts = 3, label = 'retry'): Pr
   throw (lastErr instanceof Error ? lastErr : new Error('Échec après retries'));
 }
 
-export async function removeBackgroundPreferred(image: Blob, signal?: AbortSignal): Promise<{ blob: Blob; durationMs: number; provider: 'api4ai'|'remove_bg' }> {
+export async function removeBackgroundPreferred(image: Blob, signal?: AbortSignal): Promise<{ blob: Blob; durationMs: number; provider: 'clipdrop'|'photoroom' }> {
   const t0 = performance.now();
   try {
-    const res = await retry(() => callEdgeRemoveBG('api4ai', image, signal), 3, 'api4ai');
+    const res = await retry(() => callEdgeRemoveBG('clipdrop', image, signal), 3, 'clipdrop');
     const total = performance.now() - t0;
-    console.info('[BG] api4ai OK', { provider: 'api4ai', apiTime: res.durationMs, totalMs: Math.round(total) });
-    return { ...res, provider: 'api4ai' };
+    console.info('[BG] clipdrop OK', { provider: 'clipdrop', apiTime: res.durationMs, totalMs: Math.round(total) });
+    return { ...res, provider: 'clipdrop' };
   } catch (e) {
-    console.warn('[BG] api4ai a échoué, fallback remove_bg', e);
-    const res = await retry(() => callEdgeRemoveBG('remove_bg', image, signal), 3, 'remove_bg');
+    console.warn('[BG] clipdrop a échoué, fallback photoroom', e);
+    const res = await retry(() => callEdgeRemoveBG('photoroom', image, signal), 3, 'photoroom');
     const total = performance.now() - t0;
-    console.info('[BG] remove_bg OK', { provider: 'remove_bg', apiTime: res.durationMs, totalMs: Math.round(total) });
-    return { ...res, provider: 'remove_bg' };
+    console.info('[BG] photoroom OK', { provider: 'photoroom', apiTime: res.durationMs, totalMs: Math.round(total) });
+    return { ...res, provider: 'photoroom' };
   }
 }

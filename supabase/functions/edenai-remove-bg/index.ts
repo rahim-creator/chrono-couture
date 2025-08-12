@@ -127,22 +127,29 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
-async function edenCall(provider: 'api4ai'|'remove_bg', image: string, apiKey: string, timeoutMs: number) {
+async function edenCall(provider: 'clipdrop'|'photoroom', image: string, apiKey: string, timeoutMs: number) {
   const parsed = dataUrlToBase64(image);
-  const filePayload = parsed ? parsed.b64 : image; // EdenAI attend du base64 brut
-  const body: Record<string, unknown> = {
-    providers: provider,
-    response_as_dict: true,
-    attributes_as_list: false,
-    show_original_response: false,
-    fallback_providers: '',
-    file: filePayload,
-  };
+  if (!parsed) {
+    throw Object.assign(new Error('Image invalide: data URL requise'), { provider });
+  }
+  const { mime, b64 } = parsed;
+  // Décoder le base64 en binaire et construire un fichier pour multipart/form-data
+  const binary = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const ext = (mime?.split('/')?.[1] || 'png').toLowerCase();
+  const blob = new Blob([binary], { type: mime || 'image/png' });
+
+  const form = new FormData();
+  form.append('providers', provider);
+  form.append('file', blob, `image.${ext}`);
+  form.append('response_as_dict', 'true');
+  form.append('attributes_as_list', 'false');
+  form.append('show_original_response', 'false');
+
   const started = Date.now();
   const res = await fetchWithTimeout('https://api.edenai.run/v2/image/background_removal', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { Authorization: `Bearer ${apiKey}` }, // ne pas définir Content-Type pour laisser le boundary
+    body: form,
   }, timeoutMs);
   const durationMs = Date.now() - started;
   if (!res.ok) {
@@ -230,14 +237,14 @@ Deno.serve(async (req) => {
       return errorResponse('Image trop volumineuse (max 5MB)', 413, origin, { maxBytes: MAX_BYTES, bytes: info.bytes });
     }
 
-// Politique providers: d'abord api4ai, fallback remove_bg
-const providers: Array<'api4ai'|'remove_bg'> = ['api4ai', 'remove_bg'];
+// Politique providers: d'abord clipdrop, fallback photoroom
+const providers: Array<'clipdrop'|'photoroom'> = ['clipdrop', 'photoroom'];
 
     // Remaining time budget for the whole function
     const remainingMs = () => Math.max(0, GLOBAL_TIMEOUT_MS - (Date.now() - functionStarted));
 
 let finalImage: string | undefined;
-let usedProvider: 'api4ai'|'remove_bg' | undefined;
+let usedProvider: 'clipdrop'|'photoroom' | undefined;
 let providerAttempts = 0;
     const metrics: Record<string, unknown> = { attempts: [] };
 
