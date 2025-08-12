@@ -121,7 +121,7 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
-async function edenCall(provider: 'api4ai'|'remove-bg', image: string, apiKey: string, timeoutMs: number) {
+async function edenCall(provider: 'api4ai'|'remove_bg', image: string, apiKey: string, timeoutMs: number) {
   const body: Record<string, unknown> = {
     providers: provider,
     response_as_dict: true,
@@ -222,15 +222,15 @@ Deno.serve(async (req) => {
       return errorResponse('Image trop volumineuse (max 5MB)', 413, origin, { maxBytes: MAX_BYTES, bytes: info.bytes });
     }
 
-    // Politique providers: d'abord api4ai, fallback remove-bg
-    const providers: Array<'api4ai'|'remove-bg'> = ['api4ai', 'remove-bg'];
+// Politique providers: d'abord api4ai, fallback remove_bg
+const providers: Array<'api4ai'|'remove_bg'> = ['api4ai', 'remove_bg'];
 
     // Remaining time budget for the whole function
     const remainingMs = () => Math.max(0, GLOBAL_TIMEOUT_MS - (Date.now() - functionStarted));
 
-    let finalImage: string | undefined;
-    let usedProvider: 'api4ai'|'remove-bg' | undefined;
-    let providerAttempts = 0;
+let finalImage: string | undefined;
+let usedProvider: 'api4ai'|'remove_bg' | undefined;
+let providerAttempts = 0;
     const metrics: Record<string, unknown> = { attempts: [] };
 
     for (const provider of providers) {

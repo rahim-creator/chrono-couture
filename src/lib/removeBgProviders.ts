@@ -14,7 +14,7 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
-async function callEdgeRemoveBG(provider: 'api4ai' | 'remove-bg', image: Blob, signal?: AbortSignal) {
+async function callEdgeRemoveBG(provider: 'api4ai' | 'remove_bg', image: Blob, signal?: AbortSignal) {
   const body = {
     provider,
     image: await blobToDataURL(image),
@@ -64,7 +64,7 @@ async function retry<T>(fn: () => Promise<T>, attempts = 3, label = 'retry'): Pr
   throw (lastErr instanceof Error ? lastErr : new Error('Échec après retries'));
 }
 
-export async function removeBackgroundPreferred(image: Blob, signal?: AbortSignal): Promise<{ blob: Blob; durationMs: number; provider: 'api4ai'|'remove-bg' }> {
+export async function removeBackgroundPreferred(image: Blob, signal?: AbortSignal): Promise<{ blob: Blob; durationMs: number; provider: 'api4ai'|'remove_bg' }> {
   const t0 = performance.now();
   try {
     const res = await retry(() => callEdgeRemoveBG('api4ai', image, signal), 3, 'api4ai');
@@ -72,10 +72,10 @@ export async function removeBackgroundPreferred(image: Blob, signal?: AbortSigna
     console.info('[BG] api4ai OK', { provider: 'api4ai', apiTime: res.durationMs, totalMs: Math.round(total) });
     return { ...res, provider: 'api4ai' };
   } catch (e) {
-    console.warn('[BG] api4ai a échoué, fallback remove-bg', e);
-    const res = await retry(() => callEdgeRemoveBG('remove-bg', image, signal), 3, 'remove-bg');
+    console.warn('[BG] api4ai a échoué, fallback remove_bg', e);
+    const res = await retry(() => callEdgeRemoveBG('remove_bg', image, signal), 3, 'remove_bg');
     const total = performance.now() - t0;
-    console.info('[BG] remove-bg OK', { provider: 'remove-bg', apiTime: res.durationMs, totalMs: Math.round(total) });
-    return { ...res, provider: 'remove-bg' };
+    console.info('[BG] remove_bg OK', { provider: 'remove_bg', apiTime: res.durationMs, totalMs: Math.round(total) });
+    return { ...res, provider: 'remove_bg' };
   }
 }
