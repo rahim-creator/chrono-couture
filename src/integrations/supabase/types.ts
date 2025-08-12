@@ -205,43 +205,73 @@ export type Database = {
       }
       wardrobe_items: {
         Row: {
+          brand: string | null
           color: string
+          condition: string
           created_at: string
+          fit: string
           formality: string | null
           id: string
           image_path: string
           image_url: string | null
+          last_worn: string | null
+          material: string
+          pattern: string
+          purchase_date: string | null
           season: string
+          size: string | null
           tags: string[]
           type: string
           updated_at: string
           user_id: string
+          versatility_score: number | null
+          weight: string | null
         }
         Insert: {
+          brand?: string | null
           color: string
+          condition?: string
           created_at?: string
+          fit?: string
           formality?: string | null
           id?: string
           image_path: string
           image_url?: string | null
+          last_worn?: string | null
+          material?: string
+          pattern?: string
+          purchase_date?: string | null
           season: string
+          size?: string | null
           tags?: string[]
           type: string
           updated_at?: string
           user_id: string
+          versatility_score?: number | null
+          weight?: string | null
         }
         Update: {
+          brand?: string | null
           color?: string
+          condition?: string
           created_at?: string
+          fit?: string
           formality?: string | null
           id?: string
           image_path?: string
           image_url?: string | null
+          last_worn?: string | null
+          material?: string
+          pattern?: string
+          purchase_date?: string | null
           season?: string
+          size?: string | null
           tags?: string[]
           type?: string
           updated_at?: string
           user_id?: string
+          versatility_score?: number | null
+          weight?: string | null
         }
         Relationships: []
       }
