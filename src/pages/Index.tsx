@@ -11,6 +11,7 @@ import SEO from "@/components/SEO";
 import { useWeather } from "@/hooks/useWeather";
 import { toast } from "sonner";
 import StatsSection from "@/components/StatsSection";
+import { supabase } from "@/integrations/supabase/client";
 
 const moods = [
   { value: "neutre", label: "Neutre" },
@@ -37,6 +38,35 @@ const Index = () => {
   const [mood, setMood] = useState("neutre");
   const [event, setEvent] = useState("travail");
   const [useAutoWeather, setUseAutoWeather] = useState(true);
+
+  // États pour les préférences utilisateur
+  const [userMoods, setUserMoods] = useState(moods);
+  const [userEvents, setUserEvents] = useState(events);
+
+  // Charger les préférences utilisateur
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data } = await supabase
+        .from('user_preferences')
+        .select('custom_moods, custom_events')
+        .eq('user_id', user.user.id)
+        .maybeSingle();
+
+      if (data) {
+        if (data.custom_moods?.length > 0) {
+          setUserMoods(data.custom_moods.map(mood => ({ value: mood, label: mood })));
+        }
+        if (data.custom_events?.length > 0) {
+          setUserEvents(data.custom_events.map(event => ({ value: event, label: event })));
+        }
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
 
   // Synchroniser avec les données météo automatiques
   useEffect(() => {
@@ -188,7 +218,7 @@ const Index = () => {
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
-                {moods.map((m) => (
+                {userMoods.map((m) => (
                   <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -209,7 +239,7 @@ const Index = () => {
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
-                {events.map((ev) => (
+                {userEvents.map((ev) => (
                   <SelectItem key={ev.value} value={ev.value}>{ev.label}</SelectItem>
                 ))}
               </SelectContent>

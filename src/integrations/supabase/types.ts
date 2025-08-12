@@ -117,6 +117,8 @@ export type Database = {
         Row: {
           cold_threshold: number | null
           created_at: string
+          custom_events: string[] | null
+          custom_moods: string[] | null
           first_name: string | null
           id: string
           last_name: string | null
@@ -129,6 +131,8 @@ export type Database = {
         Insert: {
           cold_threshold?: number | null
           created_at?: string
+          custom_events?: string[] | null
+          custom_moods?: string[] | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -141,6 +145,8 @@ export type Database = {
         Update: {
           cold_threshold?: number | null
           created_at?: string
+          custom_events?: string[] | null
+          custom_moods?: string[] | null
           first_name?: string | null
           id?: string
           last_name?: string | null

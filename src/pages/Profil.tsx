@@ -15,6 +15,8 @@ type UserPreferences = {
   cold_threshold: number;
   warm_threshold: number;
   preferred_formality: "casual" | "business" | "sport";
+  custom_moods: string[];
+  custom_events: string[];
 };
 
 const Profil = () => {
@@ -24,7 +26,9 @@ const Profil = () => {
     preferred_color: "#d946ef",
     cold_threshold: 10,
     warm_threshold: 25,
-    preferred_formality: "casual"
+    preferred_formality: "casual",
+    custom_moods: ['neutre', 'énergique', 'calme', 'confiant'],
+    custom_events: ['travail', 'rdv', 'soirée', 'sport', 'voyage']
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,7 +52,9 @@ const Profil = () => {
             preferred_color: data.preferred_color || "#d946ef",
             cold_threshold: data.cold_threshold || 10,
             warm_threshold: data.warm_threshold || 25,
-            preferred_formality: (data.preferred_formality as "casual" | "business" | "sport") || "casual"
+            preferred_formality: (data.preferred_formality as "casual" | "business" | "sport") || "casual",
+            custom_moods: data.custom_moods || ['neutre', 'énergique', 'calme', 'confiant'],
+            custom_events: data.custom_events || ['travail', 'rdv', 'soirée', 'sport', 'voyage']
           });
         }
       } catch (err) {
@@ -228,7 +234,95 @@ const Profil = () => {
           </CardContent>
         </Card>
 
-        <Button 
+        {/* Humeurs personnalisées */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Humeurs personnalisées</CardTitle>
+            <CardDescription>Définissez vos humeurs pour les recommandations</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {preferences.custom_moods.map((mood, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={mood}
+                  onChange={(e) => {
+                    const newMoods = [...preferences.custom_moods];
+                    newMoods[index] = e.target.value;
+                    setPreferences(prev => ({ ...prev, custom_moods: newMoods }));
+                  }}
+                  placeholder="Humeur"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newMoods = preferences.custom_moods.filter((_, i) => i !== index);
+                    setPreferences(prev => ({ ...prev, custom_moods: newMoods }));
+                  }}
+                >
+                  Supprimer
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPreferences(prev => ({ 
+                  ...prev, 
+                  custom_moods: [...prev.custom_moods, ''] 
+                }));
+              }}
+            >
+              Ajouter une humeur
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Types d'activités personnalisés */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Types d'activités personnalisés</CardTitle>
+            <CardDescription>Définissez vos activités pour les recommandations</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {preferences.custom_events.map((event, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={event}
+                  onChange={(e) => {
+                    const newEvents = [...preferences.custom_events];
+                    newEvents[index] = e.target.value;
+                    setPreferences(prev => ({ ...prev, custom_events: newEvents }));
+                  }}
+                  placeholder="Type d'activité"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newEvents = preferences.custom_events.filter((_, i) => i !== index);
+                    setPreferences(prev => ({ ...prev, custom_events: newEvents }));
+                  }}
+                >
+                  Supprimer
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPreferences(prev => ({ 
+                  ...prev, 
+                  custom_events: [...prev.custom_events, ''] 
+                }));
+              }}
+            >
+              Ajouter une activité
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Button
           variant="hero" 
           onClick={handleSave}
           disabled={saving}
