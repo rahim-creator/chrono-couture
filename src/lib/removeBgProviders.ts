@@ -21,18 +21,13 @@ async function callEdgeRemoveBG(provider: 'api4ai' | 'remove-bg', image: Blob, s
   };
   const started = performance.now();
 
-  // Require an authenticated session so the JWT is sent with the request
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData?.session) {
-    const err: any = new Error('AUTH_REQUIRED: Veuillez vous connecter.');
-    err.code = 'AUTH_REQUIRED';
-    throw err;
-  }
+  // Optional auth: if a session exists, it will be sent automatically by supabase-js
+  // This function is public (verify_jwt = false) and restricted by CORS + rate limiting server-side.
+  // So we do not require an authenticated session to proceed.
 
   // Using Supabase client to invoke the Edge Function (handles full URL & headers)
   const { data, error } = await supabase.functions.invoke('edenai-remove-bg', {
     body,
-    // signal is not currently supported by supabase-js for functions; kept for API parity
   } as any);
 
   if (error) {

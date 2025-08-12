@@ -11,7 +11,7 @@
 // Deno runtime
 
 // CORS allowlist & security helpers
-const DEFAULT_ALLOWED_HOST_SUFFIXES = ['.lovable.app', '.lovable.dev'];
+const DEFAULT_ALLOWED_HOST_SUFFIXES = ['.lovable.app', '.lovable.dev', '.lovableproject.com'];
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
