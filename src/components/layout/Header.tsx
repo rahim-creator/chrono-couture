@@ -1,8 +1,9 @@
 import { Link, NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
+import { supabase } from "@/integrations/supabase/client";
+import { cleanupAuthState } from "@/lib/auth";
 const navItems = [
   { to: "/bienvenue", label: "Bienvenue" },
   { to: "/", label: "Accueil" },
@@ -18,6 +19,23 @@ const navItems = [
 
 export const Header = () => {
   const [open, setOpen] = useState(false);
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthed(!!session?.user);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => setAuthed(!!session?.user));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      cleanupAuthState();
+      try { await supabase.auth.signOut({ scope: 'global' }); } catch {}
+      window.location.href = '/auth';
+    } catch {}
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/50">
@@ -48,6 +66,13 @@ export const Header = () => {
           <Button asChild variant="hero" size="sm">
             <Link to="/recommandations">Proposer une tenue</Link>
           </Button>
+          {authed ? (
+            <Button variant="outline" size="sm" onClick={handleLogout}>Se déconnecter</Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/auth">Se connecter</Link>
+            </Button>
+          )}
           <Button variant="outline" size="icon" className="md:hidden" aria-label="Menu" onClick={() => setOpen(!open)}>
             <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <line x1="3" y1="12" x2="21" y2="12"></line>

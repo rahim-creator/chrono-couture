@@ -17,7 +17,8 @@ import CookieBanner, { openCookieSettings } from "@/components/CookieBanner";
 import MentionsLegales from "./pages/MentionsLegales";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import PolitiqueCookies from "./pages/PolitiqueCookies";
-
+import RequireAuth from "@/components/RequireAuth";
+import Auth from "./pages/Auth";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -35,8 +36,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/bienvenue" element={<Bienvenue />} />
-              <Route path="/garde-robe" element={<Wardrobe />} />
-              <Route path="/ajout" element={<AddItemWizard />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/garde-robe" element={<RequireAuth><Wardrobe /></RequireAuth>} />
+              <Route path="/ajout" element={<RequireAuth><AddItemWizard /></RequireAuth>} />
               <Route path="/recommandations" element={<Recommandations />} />
               <Route path="/historique" element={<Historique />} />
               <Route path="/profil" element={<Profil />} />
