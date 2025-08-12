@@ -13,9 +13,10 @@ import Historique from "./pages/Historique";
 import Profil from "./pages/Profil";
 import NotFound from "./pages/NotFound";
 import Bienvenue from "./pages/Bienvenue";
-import CookieBanner from "@/components/CookieBanner";
+import CookieBanner, { openCookieSettings } from "@/components/CookieBanner";
 import MentionsLegales from "./pages/MentionsLegales";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
+import PolitiqueCookies from "./pages/PolitiqueCookies";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/profil" element={<Profil />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+              <Route path="/politique-cookies" element={<PolitiqueCookies />} />
               {/* OLD APP HOME (optional) */}
               <Route path="/app" element={<Recommandations />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

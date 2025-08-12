@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { X, Settings } from "lucide-react";
 
+export const openCookieSettings = () => {
+  window.dispatchEvent(new CustomEvent('openCookieBanner'));
+};
+
 const CookieBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -16,6 +20,9 @@ const CookieBanner: React.FC = () => {
     if (!consent) {
       setIsVisible(true);
     }
+    const handler = () => setIsVisible(true);
+    window.addEventListener('openCookieBanner', handler);
+    return () => window.removeEventListener('openCookieBanner', handler);
   }, []);
 
   const saveConsent = (type: "all" | "necessary" | "custom") => {

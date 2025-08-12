@@ -1,0 +1,11 @@
+{
+  "name": "Chrono Couture",
+  "short_name": "ChronoCouture",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEFEF7",
+  "theme_color": "#87A96B",
+  "icons": [
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
