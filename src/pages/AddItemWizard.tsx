@@ -142,29 +142,32 @@ const AddItemWizard = () => {
             <CardDescription>Structure en une colonne, champs clairs, validation en direct</CardDescription>
           </CardHeader>
           <CardContent>
-            {insights && (
-              <div className="mb-4 rounded-md border p-3 text-sm space-y-3">
-                {/* Bouton de classification automatique complète */}
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  className="w-full"
-                  onClick={() => {
-                    if (insights.categorySuggestion) form.setValue("type", insights.categorySuggestion);
-                    if (insights.seasonSuggestion) form.setValue("season", insights.seasonSuggestion);
-                    if (insights.materialSuggestion) form.setValue("material", insights.materialSuggestion);
-                    if (insights.fitSuggestion) form.setValue("fit", insights.fitSuggestion);
-                    if (insights.conditionSuggestion) form.setValue("condition", insights.conditionSuggestion);
-                    if (insights.patternSuggestion) form.setValue("pattern", insights.patternSuggestion);
-                    if (insights.weightSuggestion) form.setValue("weight", insights.weightSuggestion);
-                    if (insights.brandSuggestion) form.setValue("brand", insights.brandSuggestion);
-                    toast.success("Classification automatique appliquée");
-                  }}
-                >
-                  🤖 Classification automatique complète
-                </Button>
+            <div className="mb-4 rounded-md border p-3 text-sm space-y-3">
+              {/* Bouton de classification automatique complète */}
+              <Button 
+                type="button" 
+                variant="secondary" 
+                className="w-full"
+                disabled={!insights}
+                onClick={() => {
+                  if (!insights) { toast.info("Ajoutez une photo pour activer l'analyse IA"); return; }
+                  if (insights.categorySuggestion) form.setValue("type", insights.categorySuggestion);
+                  if (insights.seasonSuggestion) form.setValue("season", insights.seasonSuggestion);
+                  if (insights.materialSuggestion) form.setValue("material", insights.materialSuggestion);
+                  if (insights.fitSuggestion) form.setValue("fit", insights.fitSuggestion);
+                  if (insights.conditionSuggestion) form.setValue("condition", insights.conditionSuggestion);
+                  if (insights.patternSuggestion) form.setValue("pattern", insights.patternSuggestion);
+                  if (insights.weightSuggestion) form.setValue("weight", insights.weightSuggestion);
+                  if (insights.brandSuggestion) form.setValue("brand", insights.brandSuggestion);
+                  toast.success("Classification automatique appliquée");
+                }}
+              >
+                🤖 Classification automatique complète
+              </Button>
 
-                {/* Suggestions individuelles */}
+              {!insights ? (
+                <p className="text-muted-foreground">Téléversez une photo pour obtenir des suggestions IA (matière, marque, état, coupe…)</p>
+              ) : (
                 <div className="grid grid-cols-1 gap-2">
                   {insights.categorySuggestion && (
                     <div className="flex items-center gap-2">
@@ -176,7 +179,6 @@ const AddItemWizard = () => {
                       </Button>
                     </div>
                   )}
-                  
                   {insights.materialSuggestion && (
                     <div className="flex items-center gap-2">
                       <span>Matière:</span>
@@ -187,7 +189,6 @@ const AddItemWizard = () => {
                       </Button>
                     </div>
                   )}
-                  
                   {insights.brandSuggestion && (
                     <div className="flex items-center gap-2">
                       <span>Marque:</span>
@@ -198,7 +199,6 @@ const AddItemWizard = () => {
                       </Button>
                     </div>
                   )}
-                  
                   {insights.conditionSuggestion && (
                     <div className="flex items-center gap-2">
                       <span>État:</span>
@@ -210,8 +210,8 @@ const AddItemWizard = () => {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit, () => toast.error("Veuillez remplir les champs obligatoires"))} className="grid gap-5">
