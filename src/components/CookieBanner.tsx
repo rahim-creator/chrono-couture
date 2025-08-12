@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Settings } from "lucide-react";
+import { X, Settings, Check } from "lucide-react";
 
 export const openCookieSettings = () => {
   window.dispatchEvent(new CustomEvent('openCookieBanner'));
@@ -62,7 +62,7 @@ const CookieBanner: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card text-card-foreground shadow-2xl border-t border-border p-6 animate-slide-in-right md:animate-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card text-card-foreground shadow-2xl border-t border-border p-6 animate-enter">
       <div className="container">
         {!showDetails ? (
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -89,8 +89,9 @@ const CookieBanner: React.FC = () => {
               </button>
               <button
                 onClick={() => saveConsent("all")}
-                className="px-6 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition"
+                className="px-6 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition flex items-center gap-2"
               >
+                <Check className="w-4 h-4" />
                 Tout accepter
               </button>
             </div>
@@ -159,8 +160,9 @@ const CookieBanner: React.FC = () => {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => saveConsent("custom")}
-                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition"
+                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition flex items-center gap-2"
               >
+                <Check className="w-4 h-4" />
                 Sauvegarder mes préférences
               </button>
             </div>
