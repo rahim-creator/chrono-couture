@@ -38,9 +38,9 @@ const Wardrobe = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>('grid');
   const [filters, setFilters] = React.useState<FilterState>({
     search: '',
-    type: '',
-    season: '',
-    formality: ''
+    type: 'all',
+    season: 'all',
+    formality: 'all'
   });
 
   React.useEffect(() => {
@@ -85,17 +85,17 @@ const Wardrobe = () => {
     }
 
     // Filtre par type
-    if (filters.type) {
+    if (filters.type && filters.type !== 'all') {
       filtered = filtered.filter(item => item.type === filters.type);
     }
 
     // Filtre par saison
-    if (filters.season) {
+    if (filters.season && filters.season !== 'all') {
       filtered = filtered.filter(item => item.season === filters.season);
     }
 
     // Filtre par formalité
-    if (filters.formality) {
+    if (filters.formality && filters.formality !== 'all') {
       filtered = filtered.filter(item => item.formality === filters.formality);
     }
 
@@ -107,10 +107,10 @@ const Wardrobe = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ search: '', type: '', season: '', formality: '' });
+    setFilters({ search: '', type: 'all', season: 'all', formality: 'all' });
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+  const hasActiveFilters = filters.search !== '' || filters.type !== 'all' || filters.season !== 'all' || filters.formality !== 'all';
 
   return (
     <main className="container py-10">
@@ -182,7 +182,7 @@ const Wardrobe = () => {
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous les types</SelectItem>
+              <SelectItem value="all">Tous les types</SelectItem>
               <SelectItem value="haut">Haut</SelectItem>
               <SelectItem value="bas">Bas</SelectItem>
               <SelectItem value="chaussures">Chaussures</SelectItem>
@@ -194,7 +194,7 @@ const Wardrobe = () => {
               <SelectValue placeholder="Saison" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Toutes saisons</SelectItem>
+              <SelectItem value="all">Toutes saisons</SelectItem>
               <SelectItem value="ete">Été</SelectItem>
               <SelectItem value="hiver">Hiver</SelectItem>
               <SelectItem value="mi-saison">Mi-saison</SelectItem>
@@ -207,7 +207,7 @@ const Wardrobe = () => {
               <SelectValue placeholder="Style" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous styles</SelectItem>
+              <SelectItem value="all">Tous styles</SelectItem>
               <SelectItem value="casual">Décontracté</SelectItem>
               <SelectItem value="business">Professionnel</SelectItem>
               <SelectItem value="sport">Sport</SelectItem>
