@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import SEO from "@/components/SEO";
 import heroImg from "@/assets/hero-lifestyle.jpg";
 import { Camera, Brain, Sparkles, CloudSun } from "lucide-react";
+import { Link } from "react-router-dom";
 export default function Landing() {
   return <>
       <SEO title="Transformez votre dressing – Consultant mode IA gratuit" description="Redécouvrez 40% de votre garde-robe et économisez 600€/an grâce à notre IA mode durable." canonical="/" />
@@ -23,9 +24,9 @@ export default function Landing() {
               </p>
               <div className="flex items-center gap-4">
                 <Button asChild size="lg" className="rounded-full px-8 py-6 text-base md:text-lg">
-                  <a href="/bienvenue" aria-label="Commencer gratuitement">
+                  <Link to="/bienvenue" aria-label="Commencer gratuitement">
                     Commencer gratuitement
-                  </a>
+                  </Link>
                 </Button>
                 <div className="hidden md:flex items-center gap-2 text-muted-foreground">
                   <CloudSun className="h-5 w-5" aria-hidden />
