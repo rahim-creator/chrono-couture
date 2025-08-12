@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import heic2any from 'heic2any';
 
 import { Progress } from '@/components/ui/progress';
 import { loadImage, removeBackground } from '@/lib/background';
@@ -46,15 +47,31 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
     }
     if (!accepted.length) return;
 
-      const newItems: UploadResult[] = accepted.map((file) => ({
-        id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        file,
-        originalUrl: URL.createObjectURL(file),
-        status: autoRemoveBackground ? ('processing' as const) : ('pending' as const),
-        processedUrl: undefined,
-        progress: autoRemoveBackground ? 5 : 0,
-        step: autoRemoveBackground ? 'upload' : undefined,
-      }));
+    // Convertir HEIC/HEIF en JPEG pour compatibilité navigateur
+    const prepared = await Promise.all(accepted.map(async (file) => {
+      const isHeic = file.type.includes('heic') || file.type.includes('heif') || /\.(heic|heif)$/i.test(file.name);
+      if (isHeic) {
+        try {
+          toast.info('Conversion HEIC → JPEG en cours…');
+          const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 }) as Blob;
+          return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+        } catch (e) {
+          toast.error('Échec conversion HEIC. Essayez PNG/JPEG.');
+          return file; // on tente quand même, l'étape suivante lèvera une erreur claire
+        }
+      }
+      return file;
+    }));
+
+    const newItems: UploadResult[] = prepared.map((file) => ({
+      id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      file,
+      originalUrl: URL.createObjectURL(file),
+      status: autoRemoveBackground ? ('processing' as const) : ('pending' as const),
+      processedUrl: undefined,
+      progress: autoRemoveBackground ? 5 : 0,
+      step: autoRemoveBackground ? 'upload' : undefined,
+    }));
 
     setItems((prev) => {
       const merged = [...prev, ...newItems];
@@ -65,7 +82,7 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
     if (autoRemoveBackground) {
       // Process sequentially to avoid heavy parallel GPU load
       for (const item of newItems) {
-        await processItem(item.id);
+        await processItem(item.id, item.file);
       }
     }
   }, [autoRemoveBackground, onChange]);
@@ -262,7 +279,7 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
                       onClick={() => removeItem(it.id)}
                       className="rounded px-2 py-1 hover:bg-accent"
                     >
-                      Annuler
+                      {it.status === 'error' ? 'Fermer' : 'Annuler'}
                     </button>
                   </div>
                   <div className="flex items-center justify-between text-xs">
