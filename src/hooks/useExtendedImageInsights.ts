@@ -2,24 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { UploadResult } from "@/components/UploadDropzone";
 import { analyzeImage } from "@/lib/vision";
 import { analyzeClothingAttributes } from "@/lib/clothingAnalysis";
-
-export interface ExtendedImageInsights {
-  // Existant
-  categorySuggestion?: 'haut' | 'bas' | 'chaussures';
-  seasonSuggestion?: 'ete' | 'hiver' | 'mi-saison' | 'toutes';
-  palette?: string[];
-  tags?: string[];
-  pattern?: string;
-  
-  // Nouveaux
-  materialSuggestion?: 'coton' | 'laine' | 'polyester' | 'lin' | 'soie' | 'cachemire' | 'denim' | 'cuir';
-  fitSuggestion?: 'slim' | 'regular' | 'loose' | 'oversized';
-  brandSuggestion?: string;
-  conditionSuggestion?: 'neuf' | 'bon' | 'usé';
-  sizeSuggestion?: 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
-  weightSuggestion?: 'léger' | 'moyen' | 'épais';
-  patternSuggestion?: 'uni' | 'rayé' | 'imprimé' | 'à pois' | 'carreaux' | 'floral';
-}
+import type { ExtendedImageInsights } from "@/types/enhanced-wardrobe";
 
 export function useExtendedImageInsights(uploads: UploadResult[]) {
   const [insights, setInsights] = useState<ExtendedImageInsights | null>(null);

@@ -1,5 +1,5 @@
 import { pipeline, env } from '@huggingface/transformers';
-import type { ExtendedImageInsights } from '@/hooks/useExtendedImageInsights';
+import type { ExtendedImageInsights } from '@/types/enhanced-wardrobe';
 
 // Configuration pour les modèles spécialisés
 env.allowLocalModels = false;
@@ -34,19 +34,21 @@ export async function analyzeClothingAttributes(imageBlob: Blob): Promise<Partia
   try {
     const img = await createImageFromBlob(imageBlob);
     
-    const [materialResult, brandResult, conditionResult] = await Promise.all([
+    const [materialResult, brandResult, conditionResult, fitResult] = await Promise.all([
       analyzeMaterial(img),
       analyzeBrand(img),
-      analyzeCondition(img)
+      analyzeCondition(img),
+      analyzeFit(img)
     ]);
 
     return {
       materialSuggestion: materialResult as 'coton' | 'laine' | 'polyester' | 'lin' | 'soie' | 'cachemire' | 'denim' | 'cuir',
       brandSuggestion: brandResult,
       conditionSuggestion: conditionResult as 'neuf' | 'bon' | 'usé',
-      fitSuggestion: analyzeFit(img) as 'slim' | 'regular' | 'loose' | 'oversized',
+      fitSuggestion: fitResult as 'slim' | 'regular' | 'loose' | 'oversized',
       weightSuggestion: analyzeWeight(materialResult) as 'léger' | 'moyen' | 'épais',
-      patternSuggestion: analyzePatternAdvanced(img) as 'uni' | 'rayé' | 'imprimé' | 'à pois' | 'carreaux' | 'floral'
+      patternSuggestion: analyzePatternAdvanced(img) as 'uni' | 'rayé' | 'imprimé' | 'à pois' | 'carreaux' | 'floral',
+      sizeSuggestion: analyzeSizeFromFit(fitResult) as 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | undefined
     };
   } catch (error) {
     console.warn('Analyse étendue échouée:', error);
@@ -57,14 +59,16 @@ export async function analyzeClothingAttributes(imageBlob: Blob): Promise<Partia
 async function createImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      resolve(img);
+    };
     img.onerror = reject;
     img.src = URL.createObjectURL(blob);
   });
 }
 
 async function analyzeMaterial(img: HTMLImageElement): Promise<string> {
-  // Analyse basée sur la texture et les caractéristiques visuelles
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
   canvas.width = 224;
@@ -73,13 +77,18 @@ async function analyzeMaterial(img: HTMLImageElement): Promise<string> {
   
   const imageData = ctx.getImageData(0, 0, 224, 224);
   const textureVariance = calculateTextureVariance(imageData);
+  const colorAnalysis = analyzeColorDistribution(imageData);
   
-  // Heuristiques basées sur la variance de texture
-  if (textureVariance > 50) return 'denim';
+  // Heuristiques avancées basées sur texture et couleur
+  if (textureVariance > 50 && colorAnalysis.blueDominant) return 'denim';
+  if (textureVariance > 40 && colorAnalysis.darkColors) return 'cuir';
   if (textureVariance > 30) return 'laine';
-  if (textureVariance > 15) return 'coton';
-  if (textureVariance > 5) return 'polyester';
-  return 'soie';
+  if (textureVariance > 15 && colorAnalysis.naturalColors) return 'coton';
+  if (textureVariance > 10 && colorAnalysis.brightColors) return 'polyester';
+  if (textureVariance < 5 && colorAnalysis.lightColors) return 'soie';
+  if (colorAnalysis.earthTones) return 'lin';
+  
+  return 'coton'; // Défaut
 }
 
 async function analyzeBrand(img: HTMLImageElement): Promise<string | undefined> {
@@ -87,8 +96,12 @@ async function analyzeBrand(img: HTMLImageElement): Promise<string | undefined> 
     const ocr = await getOCR();
     const result = await ocr(img);
     
-    // Recherche de marques connues dans le texte détecté
-    const knownBrands = ['ZARA', 'H&M', 'NIKE', 'ADIDAS', 'UNIQLO', 'GAP'];
+    const knownBrands = [
+      'ZARA', 'H&M', 'NIKE', 'ADIDAS', 'UNIQLO', 'GAP', 'LEVIS',
+      'CALVIN KLEIN', 'TOMMY HILFIGER', 'LACOSTE', 'POLO', 'GUCCI',
+      'PRADA', 'LOUIS VUITTON', 'CHANEL', 'DIOR'
+    ];
+    
     const text = result.generated_text?.toUpperCase() || '';
     
     for (const brand of knownBrands) {
@@ -110,36 +123,163 @@ function analyzeCondition(img: HTMLImageElement): string {
   
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const sharpness = calculateSharpness(imageData);
+  const defects = detectDefects(imageData);
   
-  // Heuristiques basées sur la netteté et les défauts
-  if (sharpness > 0.8) return 'neuf';
-  if (sharpness > 0.5) return 'bon';
+  if (sharpness > 0.8 && defects < 0.1) return 'neuf';
+  if (sharpness > 0.5 && defects < 0.3) return 'bon';
   return 'usé';
 }
 
 function analyzeFit(img: HTMLImageElement): string {
-  // Analyse des proportions pour déterminer la coupe
   const aspectRatio = img.width / img.height;
+  const silhouetteAnalysis = analyzeSilhouette(img);
   
-  if (aspectRatio > 1.5) return 'loose';
-  if (aspectRatio > 1.2) return 'regular';
-  if (aspectRatio > 0.8) return 'slim';
-  return 'oversized';
+  if (silhouetteAnalysis.isVeryLoose || aspectRatio > 1.8) return 'oversized';
+  if (silhouetteAnalysis.isLoose || aspectRatio > 1.5) return 'loose';
+  if (silhouetteAnalysis.isTight || aspectRatio < 0.8) return 'slim';
+  return 'regular';
+}
+
+function analyzeSizeFromFit(fit: string): string | undefined {
+  // Heuristique simple basée sur la coupe
+  const sizeMap: Record<string, string> = {
+    'slim': 'S',
+    'regular': 'M',
+    'loose': 'L',
+    'oversized': 'XL'
+  };
+  
+  return sizeMap[fit];
 }
 
 function analyzeWeight(material: string): string {
-  // Mapping matière -> poids typique
   const weightMap: Record<string, string> = {
     'denim': 'épais',
     'laine': 'épais',
+    'cuir': 'épais',
     'cachemire': 'moyen',
     'coton': 'moyen',
+    'polyester': 'moyen',
     'lin': 'léger',
-    'soie': 'léger',
-    'polyester': 'léger'
+    'soie': 'léger'
   };
   
   return weightMap[material] || 'moyen';
+}
+
+// Fonctions utilitaires avancées
+function analyzeColorDistribution(imageData: ImageData): {
+  blueDominant: boolean;
+  darkColors: boolean;
+  naturalColors: boolean;
+  brightColors: boolean;
+  lightColors: boolean;
+  earthTones: boolean;
+} {
+  const data = imageData.data;
+  let blueSum = 0, redSum = 0, greenSum = 0;
+  let darkPixels = 0, brightPixels = 0, lightPixels = 0;
+  let totalPixels = 0;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    
+    redSum += r;
+    greenSum += g;
+    blueSum += b;
+    
+    const brightness = (r + g + b) / 3;
+    if (brightness < 80) darkPixels++;
+    else if (brightness > 180) lightPixels++;
+    else brightPixels++;
+    
+    totalPixels++;
+  }
+  
+  const avgR = redSum / totalPixels;
+  const avgG = greenSum / totalPixels;
+  const avgB = blueSum / totalPixels;
+  
+  return {
+    blueDominant: avgB > avgR && avgB > avgG,
+    darkColors: darkPixels / totalPixels > 0.6,
+    naturalColors: Math.abs(avgR - avgG) < 30 && Math.abs(avgG - avgB) < 30,
+    brightColors: brightPixels / totalPixels > 0.5,
+    lightColors: lightPixels / totalPixels > 0.4,
+    earthTones: avgR > avgG && avgG > avgB && avgR - avgB < 50
+  };
+}
+
+function detectDefects(imageData: ImageData): number {
+  // Détection de défauts visuels (taches, déchirures, etc.)
+  const data = imageData.data;
+  let defectScore = 0;
+  let totalPixels = 0;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    
+    // Détection de variations anormales
+    const variance = Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r);
+    if (variance > 100) defectScore++;
+    
+    totalPixels++;
+  }
+  
+  return defectScore / totalPixels;
+}
+
+function analyzeSilhouette(img: HTMLImageElement): {
+  isVeryLoose: boolean;
+  isLoose: boolean;
+  isTight: boolean;
+} {
+  // Analyse de la silhouette pour déterminer la coupe
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  canvas.width = 64;
+  canvas.height = 64;
+  ctx.drawImage(img, 0, 0, 64, 64);
+  
+  const imageData = ctx.getImageData(0, 0, 64, 64);
+  const edgePixels = detectEdges(imageData);
+  
+  return {
+    isVeryLoose: edgePixels < 0.2,
+    isLoose: edgePixels < 0.4,
+    isTight: edgePixels > 0.7
+  };
+}
+
+function detectEdges(imageData: ImageData): number {
+  // Détection de contours pour analyser la forme
+  const data = imageData.data;
+  let edgePixels = 0;
+  const width = imageData.width;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const x = (i / 4) % width;
+    const y = Math.floor((i / 4) / width);
+    
+    if (x > 0 && x < width - 1 && y > 0 && y < imageData.height - 1) {
+      const current = data[i];
+      const left = data[i - 4];
+      const right = data[i + 4];
+      const up = data[i - width * 4];
+      const down = data[i + width * 4];
+      
+      const gradient = Math.abs(current - left) + Math.abs(current - right) + 
+                      Math.abs(current - up) + Math.abs(current - down);
+      
+      if (gradient > 50) edgePixels++;
+    }
+  }
+  
+  return edgePixels / (imageData.width * imageData.height);
 }
 
 function analyzePatternAdvanced(img: HTMLImageElement): string {
