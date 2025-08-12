@@ -1,1 +1,4 @@
 project_id = "yrmvcqlyjuhnylmsihrr"
+
+[functions.edenai-remove-bg]
+verify_jwt = false

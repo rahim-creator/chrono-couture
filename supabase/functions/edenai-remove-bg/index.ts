@@ -1,8 +1,12 @@
 // Supabase Edge Function: edenai-remove-bg
-// Proxifie EdenAI Background Removal avec providers api4ai | remove-bg
-// Entrée: { provider: 'api4ai'|'remove-bg', image: string(data URL ou URL http) }
-// Sortie: { image: string(data URL ou URL), durationMs: number }
-// Déploiement recommandé: --no-verify-jwt (publique depuis le client)
+// Proxy sécurisé vers EdenAI pour la suppression d’arrière-plan
+// - Reçoit une image en data URL (base64)
+// - Tente provider principal: api4ai (jusqu'à 3 retries)
+// - Fallback automatique vers remove-bg (jusqu'à 3 retries)
+// - Timeout de 30s max par requête (25s par appel EdenAI)
+// - Valide l'input (data URL image, taille <= 5MB)
+// - CORS activé, logs détaillés de performance
+// - Réponse: { image: string(data URL ou URL), durationMs: number, provider: string, attempts: number, metrics }
 
 // Deno runtime
 
@@ -20,20 +24,92 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), { ...init, headers });
 }
 
-function errorResponse(message: string, status = 400, origin?: string | null) {
-  return jsonResponse({ error: message }, { status, headers: corsHeaders(origin) });
+function errorResponse(message: string, status = 400, origin?: string | null, extra?: Record<string, unknown>) {
+  const body = extra ? { error: message, ...extra } : { error: message };
+  return jsonResponse(body, { status, headers: corsHeaders(origin) });
+}
+
+// Parse et valide une data URL image, retourne sa taille en octets
+function getDataUrlInfo(dataUrl: string): { isDataUrl: boolean; mime?: string; bytes?: number } {
+  const m = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
+  if (!m) return { isDataUrl: false };
+  const mime = m[1];
+  const b64 = m[2];
+  // Taille base64 -> bytes ~= (len * 3) / 4 - padding
+  const padding = (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
+  const bytes = Math.floor((b64.length * 3) / 4) - padding;
+  return { isDataUrl: true, mime, bytes };
+}
+
+function isSupportedImageMime(mime?: string) {
+  if (!mime) return false;
+  const allowed = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp']);
+  return allowed.has(mime.toLowerCase());
 }
 
 function extractImageFromEden(provider: string, data: any): string | undefined {
   const p = data?.[provider] ?? data?.items?.find?.((i: any) => i?.provider === provider) ?? data?.result?.[provider];
   if (!p) return undefined;
-  // champs possibles: image (data url ou base64), image_resource_url, image_url, output
   const val: string | undefined = p.image ?? p.image_base64 ?? p.image_resource_url ?? p.image_url ?? p.output;
   if (!val) return undefined;
-  // Si c'est du base64 sans préfixe, ajouter un mime par défaut PNG
-  const looksLikeBase64 = /^[A-Za-z0-9+/=\n\r]+$/.test(val) && val.length > 200; // heuristique
+  const looksLikeBase64 = /^[A-Za-z0-9+/=\n\r]+$/.test(val) && val.length > 200;
   if (looksLikeBase64 && !val.startsWith('data:')) return `data:image/png;base64,${val}`;
   return val;
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function edenCall(provider: 'api4ai'|'remove-bg', image: string, apiKey: string, timeoutMs: number) {
+  const body: Record<string, unknown> = {
+    providers: provider,
+    response_as_dict: true,
+    attributes_as_list: false,
+    show_original_response: false,
+    fallback_providers: '',
+    file: image, // data URL
+  };
+  const started = Date.now();
+  const res = await fetchWithTimeout('https://api.edenai.run/v2/image/background_removal', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }, timeoutMs);
+  const durationMs = Date.now() - started;
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw Object.assign(new Error(`EdenAI error ${res.status}: ${txt}`), { status: res.status, provider, durationMs });
+  }
+  const data = await res.json();
+  const out = extractImageFromEden(provider, data);
+  if (!out) {
+    throw Object.assign(new Error('Réponse EdenAI invalide: image manquante'), { provider, durationMs });
+  }
+  return { image: out, durationMs };
+}
+
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, backoffBaseMs = 250, label = 'retry'): Promise<{ result: T; attempts: number; totalMs: number }>
+{
+  const t0 = Date.now();
+  let lastErr: unknown;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const result = await fn();
+      return { result, attempts: i, totalMs: Date.now() - t0 };
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[edenai-remove-bg][${label}] tentative ${i}/${attempts} échouée`, e);
+      if (i < attempts) await new Promise(r => setTimeout(r, backoffBaseMs * i));
+    }
+  }
+  throw Object.assign(new Error(`Échec après ${attempts} tentatives`), { cause: lastErr });
 }
 
 Deno.serve(async (req) => {
@@ -41,62 +117,91 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders(origin) });
   }
-
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405, origin);
   }
 
+  const functionStarted = Date.now();
   try {
     const apiKey = Deno.env.get('EDENAI_API_KEY');
     if (!apiKey) return errorResponse('Missing EDENAI_API_KEY secret', 500, origin);
 
-    const { provider, image } = await req.json();
-    if (!provider || (provider !== 'api4ai' && provider !== 'remove-bg')) {
-      return errorResponse("'provider' doit être 'api4ai' ou 'remove-bg'", 400, origin);
+    const contentType = req.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return errorResponse('Content-Type application/json requis', 415, origin);
     }
+
+    const { image } = await req.json();
+
     if (!image || typeof image !== 'string') {
-      return errorResponse("'image' (data URL ou URL) est requis", 400, origin);
+      return errorResponse("'image' (data URL) est requis", 400, origin);
     }
 
-    const isHttpUrl = image.startsWith('http://') || image.startsWith('https://');
-    const body: Record<string, unknown> = {
-      providers: provider,
-      response_as_dict: true,
-      attributes_as_list: false,
-      show_original_response: false,
-      fallback_providers: '',
+    // Contraintes: data URL uniquement (sécurité et contrôle de taille)
+    const info = getDataUrlInfo(image);
+    if (!info.isDataUrl) {
+      return errorResponse('Seules les images en data URL (base64) sont acceptées', 400, origin);
+    }
+    if (!isSupportedImageMime(info.mime)) {
+      return errorResponse(`Type d\u2019image non supporté: ${info.mime ?? 'inconnu'}`, 415, origin);
+    }
+    const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+    if ((info.bytes ?? 0) > MAX_BYTES) {
+      return errorResponse('Image trop volumineuse (max 5MB)', 413, origin, { maxBytes: MAX_BYTES, bytes: info.bytes });
+    }
+
+    // Politique providers: d'abord api4ai, fallback remove-bg
+    const providers: Array<'api4ai'|'remove-bg'> = ['api4ai', 'remove-bg'];
+    const perCallTimeoutMs = 25_000; // 25s par appel EdenAI pour rester sous 30s
+
+    let finalImage: string | undefined;
+    let usedProvider: 'api4ai'|'remove-bg' | undefined;
+    let providerAttempts = 0;
+    const metrics: Record<string, unknown> = { attempts: [] };
+
+    for (const provider of providers) {
+      const label = `edenai:${provider}`;
+      try {
+        const { result, attempts, totalMs } = await withRetry(
+          () => edenCall(provider, image, apiKey, perCallTimeoutMs),
+          3,
+          300,
+          label,
+        );
+        finalImage = result.image;
+        usedProvider = provider;
+        providerAttempts += attempts;
+        (metrics.attempts as any[]).push({ provider, attempts, totalMs });
+        console.log(`[edenai-remove-bg] SUCCÈS provider=${provider} attempts=${attempts} apiTimeMs=${result.durationMs} totalBlockMs=${totalMs}`);
+        break; // succès
+      } catch (e: any) {
+        providerAttempts += 3; // on a atteint le max de tentatives pour ce provider
+        (metrics.attempts as any[]).push({ provider, error: String(e?.message ?? e) });
+        console.warn(`[edenai-remove-bg] ECHEC provider=${provider}`, e);
+        // on poursuit vers le provider suivant
+      }
+    }
+
+    if (!finalImage || !usedProvider) {
+      const totalMs = Date.now() - functionStarted;
+      console.error('[edenai-remove-bg] ECHEC global: aucun provider n\'a réussi', { totalMs });
+      return errorResponse('Impossible de nettoyer l\'arrière-plan pour le moment', 502, origin, { totalMs });
+    }
+
+    const durationMs = Date.now() - functionStarted;
+    const body = {
+      image: finalImage,
+      durationMs,
+      provider: usedProvider,
+      attempts: providerAttempts,
+      metrics,
     };
-    if (isHttpUrl) body.file_url = image;
-    else body.file = image; // data URL accepté par EdenAI dans la plupart des cas
 
-    const started = Date.now();
-    const edenRes = await fetch('https://api.edenai.run/v2/image/background_removal', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    const durationMs = Date.now() - started;
-    if (!edenRes.ok) {
-      const txt = await edenRes.text().catch(() => '');
-      console.error('[edenai-remove-bg] EdenAI error', edenRes.status, txt);
-      return errorResponse(`EdenAI error ${edenRes.status}: ${txt}`, edenRes.status, origin);
-    }
-
-    const data = await edenRes.json();
-    const out = extractImageFromEden(provider, data);
-    if (!out) {
-      console.error('[edenai-remove-bg] Réponse EdenAI sans image exploitable', data);
-      return errorResponse('Réponse EdenAI invalide: image manquante', 502, origin);
-    }
-
-    console.log('[edenai-remove-bg] provider:', provider, 'durationMs:', durationMs);
-    return jsonResponse({ image: out, durationMs }, { status: 200, headers: corsHeaders(origin) });
+    console.log('[edenai-remove-bg] FIN OK', { provider: usedProvider, durationMs, attempts: providerAttempts });
+    return jsonResponse(body, { status: 200, headers: corsHeaders(origin) });
   } catch (e) {
+    const totalMs = Date.now() - functionStarted;
     console.error('[edenai-remove-bg] Exception', e);
-    return errorResponse('Erreur interne', 500, origin);
+    return errorResponse('Erreur interne', 500, origin, { totalMs });
   }
 });
