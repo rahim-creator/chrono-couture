@@ -57,10 +57,10 @@ const Index = () => {
 
       if (data) {
         if (data.custom_moods?.length > 0) {
-          setUserMoods(data.custom_moods.map(mood => ({ value: mood, label: mood })));
+          setUserMoods(data.custom_moods.filter(mood => mood.trim() !== '').map(mood => ({ value: mood, label: mood })));
         }
         if (data.custom_events?.length > 0) {
-          setUserEvents(data.custom_events.map(event => ({ value: event, label: event })));
+          setUserEvents(data.custom_events.filter(event => event.trim() !== '').map(event => ({ value: event, label: event })));
         }
       }
     };
@@ -218,7 +218,7 @@ const Index = () => {
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
-                {userMoods.map((m) => (
+                {userMoods.filter(m => m.value.trim() !== '').map((m) => (
                   <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -239,7 +239,7 @@ const Index = () => {
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
-                {userEvents.map((ev) => (
+                {userEvents.filter(ev => ev.value.trim() !== '').map((ev) => (
                   <SelectItem key={ev.value} value={ev.value}>{ev.label}</SelectItem>
                 ))}
               </SelectContent>
