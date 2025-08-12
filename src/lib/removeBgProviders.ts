@@ -14,10 +14,29 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
+async function toPNGDataURL(blob: Blob): Promise<string> {
+  // Convert any image blob to PNG data URL to maximize provider compatibility
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = URL.createObjectURL(blob);
+  });
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas non supporté');
+  ctx.drawImage(img, 0, 0);
+  const dataUrl = canvas.toDataURL('image/png');
+  URL.revokeObjectURL(img.src);
+  return dataUrl;
+}
+
 async function callEdgeRemoveBG(provider: 'clipdrop' | 'photoroom', image: Blob, signal?: AbortSignal) {
   const body = {
     provider,
-    image: await blobToDataURL(image),
+    image: await toPNGDataURL(image),
   };
   const started = performance.now();
 
