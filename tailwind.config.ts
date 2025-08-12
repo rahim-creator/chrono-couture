@@ -64,7 +64,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Nunito', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'Apple Color Emoji', 'Segoe UI Emoji']
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'Apple Color Emoji', 'Segoe UI Emoji']
       },
       borderRadius: {
         lg: 'var(--radius)',

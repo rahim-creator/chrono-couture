@@ -8,55 +8,55 @@ All colors MUST be HSL. */
 @layer base {
   :root {
     /* Base surfaces */
-    --background: 0 0% 100%;
+    --background: 60 80% 98%; /* Off-white (FEFEF7) */
     --foreground: 224 71% 4%;
 
-    --card: 0 0% 100%;
+    --card: 60 56% 91%; /* Beige chaud (F5F5DC) */
     --card-foreground: 224 71% 4%;
 
-    --popover: 0 0% 100%;
+    --popover: 60 80% 98%;
     --popover-foreground: 224 71% 4%;
 
     /* Brand palette */
-    --brand: 340 72% 58%; /* Rose */
-    --brand-2: 12 92% 70%; /* Corail doux */
+    --brand: 93 27% 54%; /* Vert sauge (#87A96B) */
+    --brand-2: 12 67% 62%; /* Terracotta (#E07A5F) */
     --hero-foreground: 0 0% 100%;
 
     /* Semantic colors */
-    --primary: var(--brand);
-    --primary-foreground: 210 40% 98%;
+    --primary: var(--brand); /* buttons par défaut: vert sauge */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 60 56% 91%; /* beige */
     --secondary-foreground: 224 71% 4%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 60 40% 94%;
+    --muted-foreground: 215.4 16.3% 35%;
 
-    --accent: 216 33% 97%;
-    --accent-foreground: 224 71% 4%;
+    --accent: 12 67% 62%; /* terracotta pour éléments importants */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 60 20% 85%;
+    --input: 60 20% 85%;
     --ring: var(--brand);
 
     /* Extra tokens */
-    --canvas: 220 60% 99%;
-    --elevated: 0 0% 100%;
+    --canvas: 60 80% 98%;
+    --elevated: 60 56% 91%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 60 56% 95%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: var(--brand);
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 60 40% 94%;
+    --sidebar-accent-foreground: 224 71% 4%;
+    --sidebar-border: 60 20% 85%;
+    --sidebar-ring: var(--brand);
 
     /* Motion */
     --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
