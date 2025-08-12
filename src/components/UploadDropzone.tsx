@@ -34,6 +34,7 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
   const [items, setItems] = useState<UploadResult[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const abortMapRef = useRef<Map<string, boolean>>(new Map());
+  const modelNoticeRef = useRef(false);
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const filesArr = Array.from(files);
@@ -131,6 +132,10 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
 
       // Suppression (background)
       mark({ step: 'suppression' });
+      if (!modelNoticeRef.current) {
+        toast.info("Première utilisation: téléchargement du modèle d'IA (~50–100MB). Cela peut prendre jusqu'à 1 minute.");
+        modelNoticeRef.current = true;
+      }
       let bgBlob: Blob;
       const tBg0 = performance.now();
       try {
