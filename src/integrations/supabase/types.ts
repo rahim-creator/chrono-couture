@@ -126,6 +126,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          formality: string | null
           id: string
           image_path: string
           image_url: string | null
@@ -138,6 +139,7 @@ export type Database = {
         Insert: {
           color: string
           created_at?: string
+          formality?: string | null
           id?: string
           image_path: string
           image_url?: string | null
@@ -150,6 +152,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          formality?: string | null
           id?: string
           image_path?: string
           image_url?: string | null

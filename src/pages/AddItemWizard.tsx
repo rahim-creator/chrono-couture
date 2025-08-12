@@ -21,6 +21,7 @@ const formSchema = z.object({
   type: z.enum(["haut", "bas", "chaussures"], { required_error: "Type requis" }),
   color: z.string().min(1, "Couleur requise"),
   season: z.enum(["toutes", "ete", "hiver", "mi-saison"], { required_error: "Saison requise" }),
+  formality: z.enum(["casual", "business", "sport"], { required_error: "Formalité requise" }),
   tags: z.array(z.string()).optional(),
 });
 
@@ -33,7 +34,7 @@ const AddItemWizard = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
-    defaultValues: { type: undefined as unknown as FormValues["type"], color: "#d946ef", season: "toutes", tags: [] },
+    defaultValues: { type: undefined as unknown as FormValues["type"], color: "#d946ef", season: "toutes", formality: "casual", tags: [] },
   });
 
   const { insights } = useImageInsights(uploads);
@@ -73,6 +74,7 @@ const AddItemWizard = () => {
         type: values.type,
         color: values.color,
         season: values.season,
+        formality: values.formality,
         tags: values.tags ?? [],
         image_path: path,
       });
@@ -277,6 +279,34 @@ const AddItemWizard = () => {
                           </label>
                         </RadioGroup>
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                 />
+
+                <FormField
+                  control={form.control}
+                  name="formality"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Style <span aria-hidden className="text-destructive">*</span></FormLabel>
+                      <FormControl>
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-3 gap-3">
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent">
+                            <RadioGroupItem value="casual" id="casual" />
+                            <span className="text-sm">Décontracté</span>
+                          </label>
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent">
+                            <RadioGroupItem value="business" id="business" />
+                            <span className="text-sm">Professionnel</span>
+                          </label>
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent">
+                            <RadioGroupItem value="sport" id="sport" />
+                            <span className="text-sm">Sport</span>
+                          </label>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormDescription>Définit le niveau de formalité du vêtement.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
