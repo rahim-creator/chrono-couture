@@ -137,7 +137,15 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
         const res = await removeBackgroundPreferred(comp.blob);
         bgBlob = res.blob;
         console.info('[BG] Provider utilisé:', res.provider, 'durée:', Math.round(res.durationMs), 'ms');
-      } catch (err) {
+      } catch (err: any) {
+        const msg = String(err?.message || '');
+        if (msg.includes('AUTH_REQUIRED') || msg.includes('EDGE_401') || msg.includes('EDGE_403')) {
+          toast.error('Connexion requise pour utiliser la suppression d’arrière-plan.');
+        } else if (msg.includes('EDGE_429') || msg.toLowerCase().includes('rate')) {
+          toast.error('Trop de requêtes vers le service externe. Réessayez bientôt.');
+        } else {
+          toast.warning('Service externe indisponible, utilisation du fallback local.');
+        }
         console.warn('[BG] EdenAI indisponible, fallback local', err);
         bgBlob = await removeBackground(img);
       }

@@ -20,6 +20,15 @@ async function callEdgeRemoveBG(provider: 'api4ai' | 'remove-bg', image: Blob, s
     image: await blobToDataURL(image),
   };
   const started = performance.now();
+
+  // Require an authenticated session so the JWT is sent with the request
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) {
+    const err: any = new Error('AUTH_REQUIRED: Veuillez vous connecter.');
+    err.code = 'AUTH_REQUIRED';
+    throw err;
+  }
+
   // Using Supabase client to invoke the Edge Function (handles full URL & headers)
   const { data, error } = await supabase.functions.invoke('edenai-remove-bg', {
     body,
@@ -27,7 +36,14 @@ async function callEdgeRemoveBG(provider: 'api4ai' | 'remove-bg', image: Blob, s
   } as any);
 
   if (error) {
-    throw new Error(`Edge function error: ${error.message || 'unknown'}`);
+    const status = (error as any)?.context?.response?.status ?? (error as any)?.status ?? (error as any)?.context?.status;
+    const err: any = new Error(
+      typeof status === 'number'
+        ? `EDGE_${status}: ${error.message || 'Erreur edge'}`
+        : `EDGE_ERROR: ${error.message || 'Erreur edge'}`
+    );
+    err.status = status;
+    throw err;
   }
   const { image: dataUrl, durationMs } = (data as any) || {};
   if (!dataUrl) throw new Error('Invalid response from edge function');
