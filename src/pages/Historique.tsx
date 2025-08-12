@@ -38,9 +38,9 @@ const Historique = () => {
   const [loading, setLoading] = useState(true);
   const [needAuth, setNeedAuth] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    month: '',
-    rating: '',
-    event: ''
+    month: 'all',
+    rating: 'all',
+    event: 'all'
   });
 
   useEffect(() => {
@@ -111,14 +111,14 @@ const Historique = () => {
     let filtered = history;
 
     // Filtre par mois
-    if (filters.month) {
+    if (filters.month && filters.month !== 'all') {
       filtered = filtered.filter(item => 
         item.worn_date.startsWith(filters.month)
       );
     }
 
     // Filtre par note
-    if (filters.rating) {
+    if (filters.rating && filters.rating !== 'all') {
       const minRating = parseInt(filters.rating);
       filtered = filtered.filter(item => 
         item.rating && item.rating >= minRating
@@ -126,7 +126,7 @@ const Historique = () => {
     }
 
     // Filtre par événement
-    if (filters.event) {
+    if (filters.event && filters.event !== 'all') {
       filtered = filtered.filter(item => 
         item.context?.event === filters.event
       );
@@ -140,10 +140,10 @@ const Historique = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ month: '', rating: '', event: '' });
+    setFilters({ month: 'all', rating: 'all', event: 'all' });
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+  const hasActiveFilters = filters.month !== 'all' || filters.rating !== 'all' || filters.event !== 'all';
 
   const renderStars = (rating?: number) => {
     if (!rating) return null;
@@ -212,7 +212,7 @@ const Historique = () => {
               <SelectValue placeholder="Mois" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous les mois</SelectItem>
+              <SelectItem value="all">Tous les mois</SelectItem>
               <SelectItem value="2025-01">Janvier 2025</SelectItem>
               <SelectItem value="2024-12">Décembre 2024</SelectItem>
               <SelectItem value="2024-11">Novembre 2024</SelectItem>
@@ -224,7 +224,7 @@ const Historique = () => {
               <SelectValue placeholder="Note minimum" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Toutes les notes</SelectItem>
+              <SelectItem value="all">Toutes les notes</SelectItem>
               <SelectItem value="5">5 étoiles</SelectItem>
               <SelectItem value="4">4+ étoiles</SelectItem>
               <SelectItem value="3">3+ étoiles</SelectItem>
@@ -236,7 +236,7 @@ const Historique = () => {
               <SelectValue placeholder="Événement" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous événements</SelectItem>
+              <SelectItem value="all">Tous événements</SelectItem>
               <SelectItem value="travail">Travail</SelectItem>
               <SelectItem value="rdv">Rendez-vous</SelectItem>
               <SelectItem value="soirée">Soirée</SelectItem>
