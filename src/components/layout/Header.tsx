@@ -11,6 +11,7 @@ const navItems = [
   { to: "/recommandations", label: "Recommandations" },
   { to: "/historique", label: "Historique" },
   { to: "/profil", label: "Profil" },
+  { to: "/mentions-legales", label: "Mentions légales" },
 ];
 
 export const Header = () => {
