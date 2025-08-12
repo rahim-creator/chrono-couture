@@ -2,15 +2,9 @@ import { Button } from "@/components/ui/button";
 import SEO from "@/components/SEO";
 import heroImg from "@/assets/hero-lifestyle.jpg";
 import { Camera, Brain, Sparkles, CloudSun } from "lucide-react";
-
 export default function Landing() {
-  return (
-    <>
-      <SEO
-        title="Transformez votre dressing – Consultant mode IA gratuit"
-        description="Redécouvrez 40% de votre garde-robe et économisez 600€/an grâce à notre IA mode durable."
-        canonical="/"
-      />
+  return <>
+      <SEO title="Transformez votre dressing – Consultant mode IA gratuit" description="Redécouvrez 40% de votre garde-robe et économisez 600€/an grâce à notre IA mode durable." canonical="/" />
 
       <aside className="w-full bg-accent text-accent-foreground text-center text-sm py-2">
         🌱 Application 100% gratuite — Parce que la mode durable doit être accessible à toutes !
@@ -41,14 +35,7 @@ export default function Landing() {
             </div>
 
             <div className="relative rounded-xl overflow-hidden shadow-xl animate-scale-in">
-              <img
-                src={heroImg}
-                alt="Femme souriante devant une armoire ouverte, style lifestyle"
-                className="w-full h-auto object-cover"
-                loading="eager"
-                width={1200}
-                height={750}
-              />
+              <img src={heroImg} alt="Femme souriante devant une armoire ouverte, style lifestyle" className="w-full h-auto object-cover" loading="eager" width={1200} height={750} />
             </div>
           </div>
         </section>
@@ -92,31 +79,7 @@ export default function Landing() {
         </section>
 
         {/* Social proof */}
-        <section className="py-16 md:py-20 bg-secondary/50">
-          <div className="container">
-            <p className="text-sm text-muted-foreground mb-2">
-              Rejoignez <strong>500+ utilisatrices</strong> qui économisent en moyenne <strong>600€/an</strong>
-            </p>
-            <div className="grid gap-6 md:grid-cols-3">
-              {[{
-                name: 'Marie, 28 ans', quote: "J'ai redécouvert 15 pièces que je ne portais plus !"
-              }, {
-                name: 'Sophie, 34 ans', quote: "Fini le syndrome 'je n'ai rien à me mettre'"
-              }, {
-                name: 'Clara, 26 ans', quote: 'Mon dressing optimisé, mon budget mode divisé par 2'
-              }].map((t, i) => (
-                <figure key={i} className="bg-card text-card-foreground rounded-lg p-6 border">
-                  <div className="flex items-center gap-3 mb-3">
-                    <img src="/placeholder.svg" alt={`Photo de ${t.name}`} className="h-10 w-10 rounded-full object-cover" loading="lazy" />
-                    <figcaption className="font-medium">{t.name}</figcaption>
-                  </div>
-                  <blockquote className="text-muted-foreground">“{t.quote}”</blockquote>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
+        
       </main>
-    </>
-  );
+    </>;
 }
