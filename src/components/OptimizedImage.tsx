@@ -16,6 +16,7 @@ const OptimizedImage = ({
   sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw",
 }: Props) => {
   const [isInView, setIsInView] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -58,8 +59,9 @@ const OptimizedImage = ({
             alt={alt}
             loading={priority ? "eager" : "lazy"}
             decoding={priority ? "sync" : "async"}
-            className={className}
-            style={{ transition: "opacity 0.3s" }}
+            fetchPriority={priority ? "high" : "auto"}
+            onLoad={() => setLoaded(true)}
+            className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
           />
         </picture>
       )}
