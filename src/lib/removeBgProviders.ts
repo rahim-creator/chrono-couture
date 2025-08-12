@@ -3,6 +3,8 @@
 // The function should accept: { provider: 'api4ai'|'remove-bg', image: string(base64 data url) }
 // And return: { image: string(data url PNG), durationMs: number }
 
+import { supabase } from "@/integrations/supabase/client";
+
 function blobToDataURL(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -18,18 +20,16 @@ async function callEdgeRemoveBG(provider: 'api4ai' | 'remove-bg', image: Blob, s
     image: await blobToDataURL(image),
   };
   const started = performance.now();
-  const res = await fetch('/functions/v1/edenai-remove-bg', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(`Edge function error (${res.status}): ${txt}`);
+  // Using Supabase client to invoke the Edge Function (handles full URL & headers)
+  const { data, error } = await supabase.functions.invoke('edenai-remove-bg', {
+    body,
+    // signal is not currently supported by supabase-js for functions; kept for API parity
+  } as any);
+
+  if (error) {
+    throw new Error(`Edge function error: ${error.message || 'unknown'}`);
   }
-  const json = await res.json();
-  const { image: dataUrl, durationMs } = json || {};
+  const { image: dataUrl, durationMs } = (data as any) || {};
   if (!dataUrl) throw new Error('Invalid response from edge function');
 
   // Convert data URL to Blob
