@@ -16,6 +16,18 @@ export type VisionInsights = {
   seasonSuggestion: "toutes" | "ete" | "hiver" | "mi-saison" | null;
 };
 
+function imageToDataURL(img: HTMLImageElement, target = 256) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const { naturalWidth: w, naturalHeight: h } = img;
+  const scale = Math.min(1, target / Math.max(w, h));
+  canvas.width = Math.max(1, Math.floor(w * scale));
+  canvas.height = Math.max(1, Math.floor(h * scale));
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
+}
+
 // Map classifier labels to our categories heuristically
 const CATEGORY_KEYWORDS: Record<"haut" | "bas" | "chaussures", string[]> = {
   haut: ["shirt", "t-shirt", "blouse", "sweater", "hoodie", "coat", "jacket", "top", "cardigan"],
@@ -145,7 +157,8 @@ async function getClassifier() {
 
 export async function classifyImage(input: HTMLImageElement | string) : Promise<ClassificationLabel[]> {
   const classifier = await getClassifier();
-  const result: ClassificationLabel[] = await classifier(input, { topk: 5 });
+  const prepared = typeof input === 'string' ? input : (imageToDataURL(input) || input);
+  const result: ClassificationLabel[] = await classifier(prepared, { topk: 5 });
   // Normalize labels
   return result.map((r) => ({ label: r.label.toLowerCase(), score: r.score }))
 }

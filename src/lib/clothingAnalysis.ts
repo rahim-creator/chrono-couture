@@ -94,20 +94,27 @@ async function analyzeMaterial(img: HTMLImageElement): Promise<string> {
 async function analyzeBrand(img: HTMLImageElement): Promise<string | undefined> {
   try {
     const ocr = await getOCR();
-    const result = await ocr(img);
-    
+    // Fournir un input compatible (data URL PNG)
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    const target = 384;
+    const scale = Math.min(1, target / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+    canvas.width = Math.max(1, Math.floor((img.naturalWidth || img.width) * scale));
+    canvas.height = Math.max(1, Math.floor((img.naturalHeight || img.height) * scale));
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    const result = await ocr(dataUrl);
     const knownBrands = [
       'ZARA', 'H&M', 'NIKE', 'ADIDAS', 'UNIQLO', 'GAP', 'LEVIS',
       'CALVIN KLEIN', 'TOMMY HILFIGER', 'LACOSTE', 'POLO', 'GUCCI',
       'PRADA', 'LOUIS VUITTON', 'CHANEL', 'DIOR'
     ];
-    
-    const text = result.generated_text?.toUpperCase() || '';
-    
+    const text = (Array.isArray(result) ? result[0]?.generated_text : result?.generated_text)?.toUpperCase() || '';
     for (const brand of knownBrands) {
       if (text.includes(brand)) return brand;
     }
-    
     return undefined;
   } catch {
     return undefined;
