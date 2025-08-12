@@ -10,6 +10,7 @@ import { MapPin, Thermometer, RefreshCw } from "lucide-react";
 import SEO from "@/components/SEO";
 import { useWeather } from "@/hooks/useWeather";
 import { toast } from "sonner";
+import StatsSection from "@/components/StatsSection";
 
 const moods = [
   { value: "neutre", label: "Neutre" },
@@ -218,15 +219,11 @@ const Index = () => {
       </section>
 
       <section className="container pb-14">
-        <div className="rounded-lg border bg-card p-6">
+        <div className="mb-4">
           <h2 className="text-xl font-semibold">Statistiques rapides</h2>
-          <p className="text-muted-foreground mt-1">À venir : fréquence d'utilisation des pièces et looks préférés.</p>
-          {weatherCtx && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              Dernière mise à jour météo : {new Date(weatherCtx.date || Date.now()).toLocaleTimeString()}
-            </div>
-          )}
+          <p className="text-muted-foreground">Aperçu de votre garde-robe et utilisation</p>
         </div>
+        <StatsSection />
       </section>
     </main>
   );

@@ -241,7 +241,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      outfit_stats: {
+        Row: {
+          avg_rating: number | null
+          days_with_outfits: number | null
+          evening_outfits: number | null
+          high_rated_count: number | null
+          last_outfit_date: string | null
+          sport_outfits: number | null
+          total_outfits: number | null
+          user_id: string | null
+          work_outfits: number | null
+        }
+        Relationships: []
+      }
+      wardrobe_stats: {
+        Row: {
+          all_season_count: number | null
+          bottoms_count: number | null
+          business_count: number | null
+          casual_count: number | null
+          colors_used: string[] | null
+          last_added: string | null
+          mid_season_count: number | null
+          shoes_count: number | null
+          sport_count: number | null
+          summer_count: number | null
+          tops_count: number | null
+          total_items: number | null
+          user_id: string | null
+          winter_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
