@@ -10,13 +10,67 @@
 
 // Deno runtime
 
+// CORS allowlist & security helpers
+const DEFAULT_ALLOWED_HOST_SUFFIXES = ['.lovable.app', '.lovable.dev'];
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:5173',
+];
+function parseAllowedOrigins(): string[] {
+  const raw = Deno.env.get('ALLOWED_ORIGINS') || '';
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+function isOriginAllowed(origin?: string | null): string | null {
+  if (!origin) return null;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname.toLowerCase();
+    const configured = new Set<string>([...parseAllowedOrigins(), ...DEFAULT_ALLOWED_ORIGINS]);
+    if (configured.has(origin)) return origin;
+    if (DEFAULT_ALLOWED_HOST_SUFFIXES.some((sfx) => host.endsWith(sfx))) return origin;
+  } catch (_) {
+    // ignore
+  }
+  return null;
+}
 function corsHeaders(origin?: string | null): HeadersInit {
+  const allowed = isOriginAllowed(origin);
   return {
-    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Origin': allowed ?? 'null',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
+    'Vary': 'Origin',
   };
 }
+
+// Best-effort, in-memory rate limiter (per IP+Origin)
+const RATE_WINDOW_MS = 60_000; // 1 minute
+const RATE_MAX = 20; // max requests per window
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+function getClientKey(req: Request): string {
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  const origin = req.headers.get('origin') || 'unknown';
+  return `${ip}|${origin}`;
+}
+function checkRateLimit(req: Request) {
+  const key = getClientKey(req);
+  const now = Date.now();
+  const entry = rateMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    const resetAt = now + RATE_WINDOW_MS;
+    rateMap.set(key, { count: 1, resetAt });
+    return { allowed: true, retryAfter: 0, remaining: RATE_MAX - 1, resetAt };
+  }
+  if (entry.count >= RATE_MAX) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000), remaining: 0, resetAt: entry.resetAt };
+  }
+  entry.count += 1;
+  return { allowed: true, retryAfter: 0, remaining: RATE_MAX - entry.count, resetAt: entry.resetAt };
+}
+
+// Global timeout budget for the whole function
+const GLOBAL_TIMEOUT_MS = 28_000;
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
@@ -114,11 +168,29 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, backoffBaseMs = 
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin');
+
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders(origin) });
   }
   if (req.method !== 'POST') {
     return errorResponse('Method not allowed', 405, origin);
+  }
+
+  // Enforce CORS allowlist
+  if (!isOriginAllowed(origin)) {
+    return errorResponse('Origin not allowed', 403, origin);
+  }
+
+  // Basic rate limiting
+  const rl = checkRateLimit(req);
+  if (!rl.allowed) {
+    const headers = new Headers(corsHeaders(origin));
+    headers.set('Retry-After', String(rl.retryAfter));
+    headers.set('X-RateLimit-Limit', String(RATE_MAX));
+    headers.set('X-RateLimit-Remaining', String(rl.remaining));
+    headers.set('X-RateLimit-Reset', String(Math.floor(rl.resetAt / 1000)));
+    return jsonResponse({ error: 'Too Many Requests' }, { status: 429, headers });
   }
 
   const functionStarted = Date.now();
@@ -152,7 +224,9 @@ Deno.serve(async (req) => {
 
     // Politique providers: d'abord api4ai, fallback remove-bg
     const providers: Array<'api4ai'|'remove-bg'> = ['api4ai', 'remove-bg'];
-    const perCallTimeoutMs = 25_000; // 25s par appel EdenAI pour rester sous 30s
+
+    // Remaining time budget for the whole function
+    const remainingMs = () => Math.max(0, GLOBAL_TIMEOUT_MS - (Date.now() - functionStarted));
 
     let finalImage: string | undefined;
     let usedProvider: 'api4ai'|'remove-bg' | undefined;
@@ -161,31 +235,48 @@ Deno.serve(async (req) => {
 
     for (const provider of providers) {
       const label = `edenai:${provider}`;
+
+      // Ensure we still have time left
+      const remBefore = remainingMs();
+      if (remBefore < 2000) {
+        console.warn('[edenai-remove-bg] Global timeout budget exceeded before calling provider', { provider, remBefore });
+        break;
+      }
+
+      // Derive a safe per-call timeout from the remaining budget
+      const perCallTimeoutMs = Math.max(3000, Math.min(12_000, remBefore - 1000));
+      const maxAttempts = perCallTimeoutMs >= 10_000 ? 2 : 1; // keep total under global budget
+
       try {
         const { result, attempts, totalMs } = await withRetry(
           () => edenCall(provider, image, apiKey, perCallTimeoutMs),
-          3,
+          maxAttempts,
           300,
           label,
         );
         finalImage = result.image;
         usedProvider = provider;
         providerAttempts += attempts;
-        (metrics.attempts as any[]).push({ provider, attempts, totalMs });
+        (metrics.attempts as any[]).push({ provider, attempts, totalMs, perCallTimeoutMs });
         console.log(`[edenai-remove-bg] SUCCÈS provider=${provider} attempts=${attempts} apiTimeMs=${result.durationMs} totalBlockMs=${totalMs}`);
         break; // succès
       } catch (e: any) {
-        providerAttempts += 3; // on a atteint le max de tentatives pour ce provider
-        (metrics.attempts as any[]).push({ provider, error: String(e?.message ?? e) });
+        providerAttempts += maxAttempts;
+        (metrics.attempts as any[]).push({ provider, error: String(e?.message ?? e), perCallTimeoutMs });
         console.warn(`[edenai-remove-bg] ECHEC provider=${provider}`, e);
-        // on poursuit vers le provider suivant
+        // continue to next provider
       }
     }
 
     if (!finalImage || !usedProvider) {
       const totalMs = Date.now() - functionStarted;
+      const headers = corsHeaders(origin);
+      if (remainingMs() <= 0) {
+        console.error('[edenai-remove-bg] ECHEC global: timeout budget exceeded', { totalMs });
+        return jsonResponse({ error: 'Gateway Timeout' }, { status: 504, headers });
+      }
       console.error('[edenai-remove-bg] ECHEC global: aucun provider n\'a réussi', { totalMs });
-      return errorResponse('Impossible de nettoyer l\'arrière-plan pour le moment', 502, origin, { totalMs });
+      return jsonResponse({ error: 'Impossible de nettoyer l\'arrière-plan pour le moment', totalMs }, { status: 502, headers });
     }
 
     const durationMs = Date.now() - functionStarted;
