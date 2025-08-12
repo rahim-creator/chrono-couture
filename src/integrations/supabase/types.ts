@@ -38,6 +38,42 @@ export type Database = {
         }
         Relationships: []
       }
+      outfit_history: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          items: string[]
+          notes: string | null
+          rating: number | null
+          updated_at: string
+          user_id: string
+          worn_date: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          items?: string[]
+          notes?: string | null
+          rating?: number | null
+          updated_at?: string
+          user_id: string
+          worn_date?: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          items?: string[]
+          notes?: string | null
+          rating?: number | null
+          updated_at?: string
+          user_id?: string
+          worn_date?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
