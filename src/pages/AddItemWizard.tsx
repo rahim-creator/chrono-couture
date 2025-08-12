@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import ColorPalettePicker from "@/components/ColorPalettePicker";
 import { useImageInsights } from "@/hooks/useImageInsights";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 const formSchema = z.object({
   type: z.enum(["haut", "bas", "chaussures"], { required_error: "Type requis" }),
   color: z.string().min(1, "Couleur requise"),
@@ -37,10 +38,45 @@ const AddItemWizard = () => {
 
   const { insights } = useImageInsights(uploads);
 
-  const onSubmit = (values: FormValues) => {
-    // For now, just log and simulate save
-    console.log("Enregistrement", { values, uploads });
-    toast.success("Vêtement enregistré (démo)");
+  const onSubmit = async (values: FormValues) => {
+    try {
+      if (!uploads.length) {
+        toast.error("Ajoutez au moins une photo");
+        return;
+      }
+      const first = uploads[0];
+      const src = first.processedUrl || first.originalUrl;
+      const resp = await fetch(src);
+      const blob = await resp.blob();
+      const ext = (blob.type && blob.type.split('/')[1]) || 'png';
+      const fileName = `item-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      // Upload in storage
+      const { error: upErr } = await supabase.storage.from('wardrobe').upload(fileName, blob, { contentType: blob.type || 'image/png', upsert: false });
+      if (upErr) throw upErr;
+
+      // Public URL
+      const { data: pub } = supabase.storage.from('wardrobe').getPublicUrl(fileName);
+      const image_url = pub.publicUrl;
+
+      // Save metadata
+      const { error: insErr } = await supabase.from('wardrobe_items').insert({
+        type: values.type,
+        color: values.color,
+        season: values.season,
+        tags: values.tags ?? [],
+        image_path: fileName,
+        image_url,
+      });
+      if (insErr) throw insErr;
+
+      toast.success("Vêtement enregistré");
+      // Optionally reset
+      // form.reset();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Impossible d'enregistrer");
+    }
   };
 
   return (

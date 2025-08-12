@@ -122,6 +122,42 @@ export type Database = {
         }
         Relationships: []
       }
+      wardrobe_items: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          image_path: string
+          image_url: string | null
+          season: string
+          tags: string[]
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          image_path: string
+          image_url?: string | null
+          season: string
+          tags?: string[]
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          image_path?: string
+          image_url?: string | null
+          season?: string
+          tags?: string[]
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
