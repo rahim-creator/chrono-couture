@@ -101,6 +101,12 @@ function isSupportedImageMime(mime?: string) {
   return allowed.has(mime.toLowerCase());
 }
 
+function dataUrlToBase64(dataUrl: string): { mime: string; b64: string } | null {
+  const m = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
+  if (!m) return null;
+  return { mime: m[1], b64: m[2] };
+}
+
 function extractImageFromEden(provider: string, data: any): string | undefined {
   const p = data?.[provider] ?? data?.items?.find?.((i: any) => i?.provider === provider) ?? data?.result?.[provider];
   if (!p) return undefined;
@@ -122,13 +128,15 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
 }
 
 async function edenCall(provider: 'api4ai'|'remove_bg', image: string, apiKey: string, timeoutMs: number) {
+  const parsed = dataUrlToBase64(image);
+  const filePayload = parsed ? parsed.b64 : image; // EdenAI attend du base64 brut
   const body: Record<string, unknown> = {
     providers: provider,
     response_as_dict: true,
     attributes_as_list: false,
     show_original_response: false,
     fallback_providers: '',
-    file: image, // data URL
+    file: filePayload,
   };
   const started = Date.now();
   const res = await fetchWithTimeout('https://api.edenai.run/v2/image/background_removal', {
