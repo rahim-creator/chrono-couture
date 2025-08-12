@@ -87,7 +87,7 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
     }
   }, [autoRemoveBackground, onChange]);
 
-  const processItem = useCallback(async (id: string) => {
+  const processItem = useCallback(async (id: string, originalFile: File) => {
     abortMapRef.current.set(id, false);
 
     const mark = (partial: Partial<UploadResult>) => {
@@ -98,8 +98,6 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
       });
     };
 
-    const findCurrent = () => items.find((i) => i.id === id);
-
     const estimate = (sizeBytes: number, step: 'upload' | 'analyse' | 'suppression' | 'finalisation') => {
       const mb = Math.max(0.1, sizeBytes / (1024 * 1024));
       const factors: Record<string, number> = { upload: 400, analyse: 900, suppression: 1400, finalisation: 300 };
@@ -109,10 +107,9 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
     try {
       // Upload (compression)
       mark({ status: 'processing', step: 'upload', progress: 8 });
-      const current0 = findCurrent();
-      if (!current0) return;
 
-      const comp = await compressImageFile(current0.file, { maxDimension: 1920, maxBytes: 2_000_000 });
+      let workingFile = originalFile;
+      const comp = await compressImageFile(workingFile, { maxDimension: 1920, maxBytes: 2_000_000 });
       if (abortMapRef.current.get(id)) return;
 
       if (comp.compressedSize > 2_000_000) {
@@ -121,11 +118,11 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
         return;
       }
 
-      const newNameBase = current0.file.name.replace(/\.[^.]+$/, '');
+      const newNameBase = workingFile.name.replace(/\.[^.]+$/, '');
       const newExt = comp.format === 'image/webp' ? 'webp' : 'jpg';
       const compressedFile = new File([comp.blob], `${newNameBase}.${newExt}`, { type: comp.format });
       const newUrl = URL.createObjectURL(comp.blob);
-      const msg = `Image compressée de ${ (current0.file.size / (1024*1024)).toFixed(1) }MB à ${ (comp.blob.size / (1024*1024)).toFixed(1) }MB`;
+      const msg = `Image compressée de ${ (originalFile.size / (1024*1024)).toFixed(1) }MB à ${ (comp.blob.size / (1024*1024)).toFixed(1) }MB`;
       toast.success(msg);
 
       mark({
@@ -134,7 +131,7 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
         progress: 20,
         etaMs: estimate(comp.compressedSize, 'analyse') + estimate(comp.compressedSize, 'suppression') + estimate(comp.compressedSize, 'finalisation'),
         sizeInfo: {
-          originalKB: Math.round(current0.file.size / 1024),
+          originalKB: Math.round(originalFile.size / 1024),
           compressedKB: Math.round(comp.blob.size / 1024),
           format: comp.format,
           resized: comp.resized,
@@ -161,8 +158,8 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
         console.info('[BG] Provider utilisé:', res.provider, 'durée:', Math.round(res.durationMs), 'ms');
       } catch (err: any) {
         const msg = String(err?.message || '');
-        if (msg.includes('AUTH_REQUIRED') || msg.includes('EDGE_401') || msg.includes('EDGE_403')) {
-          toast.error('Connexion requise pour utiliser la suppression d’arrière-plan.');
+        if (msg.includes('EDGE_401') || msg.includes('AUTH_REQUIRED')) {
+          toast.warning('Service externe indisponible, fallback local (non authentifié)');
         } else if (msg.includes('EDGE_429') || msg.toLowerCase().includes('rate')) {
           toast.error('Trop de requêtes vers le service externe. Réessayez bientôt.');
         } else {
@@ -181,9 +178,10 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
       const url = URL.createObjectURL(bgBlob);
       mark({ processedUrl: url, status: 'done', progress: 100, etaMs: 0 });
     } catch (e: any) {
+      console.error('Upload error', e);
       mark({ status: 'error', error: e?.message ?? 'Erreur inconnue' });
     }
-  }, [items, onChange]);
+  }, [onChange]);
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => {
