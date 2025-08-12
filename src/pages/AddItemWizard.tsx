@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Sun, Snowflake, CloudSun, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ColorPalettePicker from "@/components/ColorPalettePicker";
-import { useImageInsights } from "@/hooks/useImageInsights";
+import { useExtendedImageInsights } from "@/hooks/useExtendedImageInsights";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 const enhancedFormSchema = z.object({
@@ -54,7 +54,7 @@ const AddItemWizard = () => {
     },
   });
 
-  const { insights } = useImageInsights(uploads);
+  const { insights } = useExtendedImageInsights(uploads);
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -143,21 +143,73 @@ const AddItemWizard = () => {
           </CardHeader>
           <CardContent>
             {insights && (
-              <div className="mb-4 rounded-md border p-3 text-sm">
-                {insights.categorySuggestion && (
-                  <div className="flex items-center gap-2">
-                    <span>Catégorie suggérée:</span>
-                    <Badge variant="secondary">{insights.categorySuggestion === "haut" ? "Haut" : insights.categorySuggestion === "bas" ? "Bas" : "Chaussures"}</Badge>
-                    <Button type="button" size="sm" variant="outline" onClick={() => form.setValue("type", insights.categorySuggestion!)}>Appliquer</Button>
-                  </div>
-                )}
-                {insights.seasonSuggestion && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span>Saison suggérée:</span>
-                    <Badge variant="secondary">{insights.seasonSuggestion === "ete" ? "Été" : insights.seasonSuggestion === "hiver" ? "Hiver" : insights.seasonSuggestion === "mi-saison" ? "Mi-saison" : "Toutes"}</Badge>
-                    <Button type="button" size="sm" variant="outline" onClick={() => form.setValue("season", insights.seasonSuggestion!)}>Appliquer</Button>
-                  </div>
-                )}
+              <div className="mb-4 rounded-md border p-3 text-sm space-y-3">
+                {/* Bouton de classification automatique complète */}
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  className="w-full"
+                  onClick={() => {
+                    if (insights.categorySuggestion) form.setValue("type", insights.categorySuggestion);
+                    if (insights.seasonSuggestion) form.setValue("season", insights.seasonSuggestion);
+                    if (insights.materialSuggestion) form.setValue("material", insights.materialSuggestion);
+                    if (insights.fitSuggestion) form.setValue("fit", insights.fitSuggestion);
+                    if (insights.conditionSuggestion) form.setValue("condition", insights.conditionSuggestion);
+                    if (insights.patternSuggestion) form.setValue("pattern", insights.patternSuggestion);
+                    if (insights.weightSuggestion) form.setValue("weight", insights.weightSuggestion);
+                    if (insights.brandSuggestion) form.setValue("brand", insights.brandSuggestion);
+                    toast.success("Classification automatique appliquée");
+                  }}
+                >
+                  🤖 Classification automatique complète
+                </Button>
+
+                {/* Suggestions individuelles */}
+                <div className="grid grid-cols-1 gap-2">
+                  {insights.categorySuggestion && (
+                    <div className="flex items-center gap-2">
+                      <span>Catégorie:</span>
+                      <Badge variant="secondary">{insights.categorySuggestion}</Badge>
+                      <Button type="button" size="sm" variant="outline" 
+                        onClick={() => form.setValue("type", insights.categorySuggestion!)}>
+                        Appliquer
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {insights.materialSuggestion && (
+                    <div className="flex items-center gap-2">
+                      <span>Matière:</span>
+                      <Badge variant="secondary">{insights.materialSuggestion}</Badge>
+                      <Button type="button" size="sm" variant="outline" 
+                        onClick={() => form.setValue("material", insights.materialSuggestion!)}>
+                        Appliquer
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {insights.brandSuggestion && (
+                    <div className="flex items-center gap-2">
+                      <span>Marque:</span>
+                      <Badge variant="secondary">{insights.brandSuggestion}</Badge>
+                      <Button type="button" size="sm" variant="outline" 
+                        onClick={() => form.setValue("brand", insights.brandSuggestion!)}>
+                        Appliquer
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {insights.conditionSuggestion && (
+                    <div className="flex items-center gap-2">
+                      <span>État:</span>
+                      <Badge variant="secondary">{insights.conditionSuggestion}</Badge>
+                      <Button type="button" size="sm" variant="outline" 
+                        onClick={() => form.setValue("condition", insights.conditionSuggestion!)}>
+                        Appliquer
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <Form {...form}>

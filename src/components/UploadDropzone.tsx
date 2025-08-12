@@ -8,7 +8,7 @@ import { removeBackgroundPreferred } from '@/lib/removeBgProviders';
 import { Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export type ProcessingStep = 'upload' | 'analyse' | 'suppression' | 'finalisation';
+export type ProcessingStep = 'upload' | 'analyse' | 'suppression' | 'finalisation' | 'analyse-avancee';
 
 export type UploadResult = {
   id: string;
@@ -21,6 +21,7 @@ export type UploadResult = {
   etaMs?: number;
   sizeInfo?: { originalKB: number; compressedKB: number; format: string; resized: boolean };
   error?: string;
+  extendedInsights?: any;
 };
 
 type UploadDropzoneProps = {
@@ -171,7 +172,24 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
       if (abortMapRef.current.get(id)) return;
       const tBg = performance.now() - tBg0;
       console.info('[BG] Temps total suppression:', Math.round(tBg), 'ms');
-      mark({ progress: 85, etaMs: estimate(comp.compressedSize, 'finalisation') });
+      // Ajouter après la suppression d'arrière-plan
+      mark({ step: 'analyse-avancee', progress: 70 });
+      
+      // Analyse étendue des attributs vestimentaires
+      let extendedInsights = {};
+      try {
+        const { analyzeClothingAttributes } = await import('@/lib/clothingAnalysis');
+        extendedInsights = await analyzeClothingAttributes(bgBlob);
+        console.info('[AI] Analyse étendue complétée:', extendedInsights);
+      } catch (err) {
+        console.warn('[AI] Analyse étendue échouée, utilisation des insights de base', err);
+      }
+      
+      mark({ 
+        progress: 85, 
+        extendedInsights,
+        etaMs: estimate(comp.compressedSize, 'finalisation') 
+      });
 
       // Finalisation
       mark({ step: 'finalisation' });
