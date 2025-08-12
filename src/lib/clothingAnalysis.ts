@@ -13,7 +13,7 @@ async function getMaterialClassifier() {
     materialClassifierPromise = pipeline(
       'image-classification',
       'microsoft/DiT-base-finetuned-rvlcdip',
-      { device: 'webgpu' }
+      { device: 'auto' }
     );
   }
   return materialClassifierPromise;
@@ -24,7 +24,7 @@ async function getOCR() {
     ocrPromise = pipeline(
       'image-to-text',
       'microsoft/trocr-base-printed',
-      { device: 'webgpu' }
+      { device: 'auto' }
     );
   }
   return ocrPromise;
