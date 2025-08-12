@@ -12,6 +12,8 @@ const navItems = [
   { to: "/historique", label: "Historique" },
   { to: "/profil", label: "Profil" },
   { to: "/mentions-legales", label: "Mentions légales" },
+  { to: "/politique-confidentialite", label: "Confidentialité" },
+  { to: "/politique-cookies", label: "Cookies" },
 ];
 
 export const Header = () => {
