@@ -12,18 +12,36 @@ import { supabase } from "@/integrations/supabase/client";
   color: string;
   season: 'toutes' | 'ete' | 'hiver' | 'mi-saison';
   tags: string[];
-  image_url: string | null;
+  image_path: string;
+  signed_url?: string | null;
  };
 
 const Wardrobe = () => {
   const [items, setItems] = React.useState<WardrobeItem[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [needAuth, setNeedAuth] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
       setLoading(true);
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (!user) {
+        setNeedAuth(true);
+        setLoading(false);
+        return;
+      }
       const { data, error } = await supabase.from('wardrobe_items').select('*').order('created_at', { ascending: false });
-      if (!error) setItems(data as any);
+      if (!error && data) {
+        // Generate signed URLs for private images
+        const withUrls = await Promise.all(
+          data.map(async (it: any) => {
+            const { data: signed } = await supabase.storage.from('wardrobe').createSignedUrl(it.image_path, 3600);
+            return { ...it, signed_url: signed?.signedUrl ?? null } as WardrobeItem;
+          })
+        );
+        setItems(withUrls);
+      }
       setLoading(false);
     })();
   }, []);
@@ -38,14 +56,15 @@ const Wardrobe = () => {
         <Button variant="hero"><PlusCircle className="mr-2" /> Ajouter un vêtement</Button>
       </div>
 
+      {needAuth && <div className="text-sm text-muted-foreground">Connectez-vous pour voir votre garde-robe.</div>}
       {loading && <div className="text-sm text-muted-foreground">Chargement…</div>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((it) => (
           <Card key={it.id} className="overflow-hidden">
             <div className="h-40 overflow-hidden bg-muted">
-              {it.image_url ? (
-                <img src={it.image_url} alt={`Vêtement ${it.type}`} className="h-full w-full object-cover" loading="lazy" />
+              {it.signed_url ? (
+                <img src={it.signed_url} alt={`Vêtement ${it.type}`} className="h-full w-full object-cover" loading="lazy" />
               ) : (
                 <div className="h-full w-full bg-gradient-to-tr from-[hsl(var(--brand)/.15)] to-[hsl(var(--brand-2)/.15)]" aria-hidden />
               )}
@@ -69,7 +88,7 @@ const Wardrobe = () => {
         ))}
       </div>
 
-      {!loading && items.length === 0 && (
+      {!loading && !needAuth && items.length === 0 && (
         <div className="text-sm text-muted-foreground">Aucun vêtement enregistré pour le moment.</div>
       )}
     </main>

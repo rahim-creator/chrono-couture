@@ -133,6 +133,7 @@ export type Database = {
           tags: string[]
           type: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           color: string
@@ -144,6 +145,7 @@ export type Database = {
           tags?: string[]
           type: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           color?: string
@@ -155,6 +157,7 @@ export type Database = {
           tags?: string[]
           type?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

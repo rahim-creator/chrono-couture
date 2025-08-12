@@ -41,41 +41,47 @@ const AddItemWizard = () => {
   const onSubmit = async (values: FormValues) => {
     try {
       if (!uploads.length) {
-        toast.error("Ajoutez au moins une photo");
+        toast.error("Add at least one photo");
         return;
       }
+
+      // Require auth to keep wardrobe private
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (!user) {
+        toast.error("Please sign in to save your wardrobe items.");
+        return;
+      }
+
       const first = uploads[0];
       const src = first.processedUrl || first.originalUrl;
       const resp = await fetch(src);
       const blob = await resp.blob();
       const ext = (blob.type && blob.type.split('/')[1]) || 'png';
       const fileName = `item-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${user.id}/${fileName}`;
 
-      // Upload in storage
-      const { error: upErr } = await supabase.storage.from('wardrobe').upload(fileName, blob, { contentType: blob.type || 'image/png', upsert: false });
+      // Upload in private storage under user folder
+      const { error: upErr } = await supabase.storage
+        .from('wardrobe')
+        .upload(path, blob, { contentType: blob.type || 'image/png', upsert: false });
       if (upErr) throw upErr;
 
-      // Public URL
-      const { data: pub } = supabase.storage.from('wardrobe').getPublicUrl(fileName);
-      const image_url = pub.publicUrl;
-
-      // Save metadata
+      // Save metadata (no public URL stored since bucket is private)
       const { error: insErr } = await supabase.from('wardrobe_items').insert({
+        user_id: user.id,
         type: values.type,
         color: values.color,
         season: values.season,
         tags: values.tags ?? [],
-        image_path: fileName,
-        image_url,
+        image_path: path,
       });
       if (insErr) throw insErr;
 
-      toast.success("Vêtement enregistré");
-      // Optionally reset
-      // form.reset();
+      toast.success("Item saved to your wardrobe");
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message ?? "Impossible d'enregistrer");
+      toast.error(e?.message ?? "Unable to save item");
     }
   };
 
