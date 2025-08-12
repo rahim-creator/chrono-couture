@@ -166,6 +166,8 @@ const Recommandations = () => {
         const { data: userRes } = await supabase.auth.getUser();
         if (!userRes.user) {
           setLoading(false);
+          console.log('Utilisateur non connecté, redirection...');
+          window.location.href = '/auth';
           return;
         }
         
