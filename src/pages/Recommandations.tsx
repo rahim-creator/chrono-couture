@@ -233,15 +233,15 @@ const Recommandations = () => {
 
       setLoadingRecommendations(true);
       try {
-        const { generateGeminiRecommendations } = await import('@/lib/geminiRecommendations');
-        const geminiLooks = await generateGeminiRecommendations(ctx, userWardrobe);
-        const mappedLooks = geminiLooks.map((look: any) => ({
+        const { generateVertexAIRecommendations } = await import('@/lib/vertexAIRecommendations');
+        const vertexLooks = await generateVertexAIRecommendations(ctx, userWardrobe);
+        const mappedLooks = vertexLooks.map((look: any) => ({
           ...look,
           items: look.items.map((id: string) => userWardrobe.find(item => item.id === id)).filter(Boolean)
         }));
         setLooks(mappedLooks);
       } catch (err) {
-        console.warn('Gemini indisponible, fallback local', err);
+        console.warn('Vertex AI indisponible, fallback local', err);
         setLooks(generateEnhancedLooks(ctx, userWardrobe, 3));
       } finally {
         setLoadingRecommendations(false);
