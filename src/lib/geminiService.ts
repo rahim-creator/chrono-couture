@@ -1,8 +1,17 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY!);
+import { supabase } from "@/integrations/supabase/client";
 
 export const analyzeClothingWithGemini = async (imageBlob: Blob) => {
+  // Récupération sécurisée de la clé API via Supabase
+  const { data } = await supabase.functions.invoke('get-secrets', {
+    body: { secret_name: 'GEMINI_API_KEY' }
+  });
+  
+  if (!data?.value) {
+    throw new Error('Clé API Gemini non configurée');
+  }
+  
+  const genAI = new GoogleGenerativeAI(data.value);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `Analysez ce vêtement et retournez un JSON avec:

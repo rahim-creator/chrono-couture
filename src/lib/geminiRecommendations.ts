@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { EnhancedWardrobeItem } from "@/types/enhanced-wardrobe";
-
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY!);
+import { supabase } from "@/integrations/supabase/client";
 
 type Context = { city?: string; temp?: number | null; mood?: string; event?: string; date?: string };
 
@@ -9,6 +8,16 @@ export const generateGeminiRecommendations = async (
   context: Context, 
   wardrobe: EnhancedWardrobeItem[]
 ) => {
+  // Récupération sécurisée de la clé API via Supabase
+  const { data } = await supabase.functions.invoke('get-secrets', {
+    body: { secret_name: 'GEMINI_API_KEY' }
+  });
+  
+  if (!data?.value) {
+    throw new Error('Clé API Gemini non configurée');
+  }
+  
+  const genAI = new GoogleGenerativeAI(data.value);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
   const prompt = `Contexte: ${JSON.stringify(context)}
