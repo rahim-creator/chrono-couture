@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import Landing from "./pages/Landing";
 import Wardrobe from "./pages/Wardrobe";
 import AddItemWizard from "./pages/AddItemWizard";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
+          <Footer />
           <CookieBanner />
         </BrowserRouter>
       </TooltipProvider>
