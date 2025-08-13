@@ -217,8 +217,30 @@ const Recommandations = () => {
     fetchWardrobe();
   }, []);
 
-  const looks = useMemo(() => {
-    return generateEnhancedLooks(ctx, userWardrobe, 3);
+  const [looks, setLooks] = useState<Look[]>([]);
+
+  useEffect(() => {
+    const generateLooks = async () => {
+      if (userWardrobe.length === 0) {
+        setLooks([{
+          id: "empty",
+          items: [],
+          note: "Ajoutez des vêtements à votre garde-robe pour obtenir des recommandations personnalisées !"
+        }]);
+        return;
+      }
+
+      try {
+        const { generateGeminiRecommendations } = await import('@/lib/geminiRecommendations');
+        const geminiLooks = await generateGeminiRecommendations(ctx, userWardrobe);
+        setLooks(geminiLooks);
+      } catch (err) {
+        console.warn('Gemini indisponible, fallback local', err);
+        setLooks(generateEnhancedLooks(ctx, userWardrobe, 3));
+      }
+    };
+
+    generateLooks();
   }, [ctx, userWardrobe, seed]);
 
   if (loading) {

@@ -175,14 +175,17 @@ export default function UploadDropzone({ autoRemoveBackground = true, onChange }
       // Ajouter après la suppression d'arrière-plan
       mark({ step: 'analyse-avancee', progress: 70 });
       
-      // Analyse étendue des attributs vestimentaires
+      // Analyse étendue des attributs vestimentaires avec Gemini
       let extendedInsights = {};
       try {
+        const { analyzeClothingWithGemini } = await import('@/lib/geminiService');
+        extendedInsights = await analyzeClothingWithGemini(bgBlob);
+        console.info('[GEMINI] Analyse complétée:', extendedInsights);
+      } catch (err) {
+        console.warn('[GEMINI] Analyse échouée, fallback local', err);
+        // Garder le fallback existant
         const { analyzeClothingAttributes } = await import('@/lib/clothingAnalysis');
         extendedInsights = await analyzeClothingAttributes(bgBlob);
-        console.info('[AI] Analyse étendue complétée:', extendedInsights);
-      } catch (err) {
-        console.warn('[AI] Analyse étendue échouée, utilisation des insights de base', err);
       }
       
       mark({ 
