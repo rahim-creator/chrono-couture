@@ -218,6 +218,7 @@ const Recommandations = () => {
   }, []);
 
   const [looks, setLooks] = useState<Look[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
   useEffect(() => {
     const generateLooks = async () => {
@@ -230,26 +231,35 @@ const Recommandations = () => {
         return;
       }
 
+      setLoadingRecommendations(true);
       try {
         const { generateGeminiRecommendations } = await import('@/lib/geminiRecommendations');
         const geminiLooks = await generateGeminiRecommendations(ctx, userWardrobe);
-        setLooks(geminiLooks);
+        const mappedLooks = geminiLooks.map((look: any) => ({
+          ...look,
+          items: look.items.map((id: string) => userWardrobe.find(item => item.id === id)).filter(Boolean)
+        }));
+        setLooks(mappedLooks);
       } catch (err) {
         console.warn('Gemini indisponible, fallback local', err);
         setLooks(generateEnhancedLooks(ctx, userWardrobe, 3));
+      } finally {
+        setLoadingRecommendations(false);
       }
     };
 
     generateLooks();
   }, [ctx, userWardrobe, seed]);
 
-  if (loading) {
+  if (loading || loadingRecommendations) {
     return (
       <main className="container py-10">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Chargement de votre garde-robe...</p>
+            <p className="text-muted-foreground">
+              {loading ? "Chargement de votre garde-robe..." : "Génération de vos recommandations..."}
+            </p>
           </div>
         </div>
       </main>
