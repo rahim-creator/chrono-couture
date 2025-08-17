@@ -158,21 +158,53 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
+      user_role_assignments: {
         Row: {
+          created_at: string | null
           id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          role_id: string | null
+          user_id: string | null
         }
         Insert: {
+          created_at?: string | null
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          role_id?: string | null
+          user_id?: string | null
         }
         Update: {
+          created_at?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          role_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          role_name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          role_name?: string
         }
         Relationships: []
       }
@@ -313,10 +345,9 @@ export type Database = {
     }
     Functions: {
       has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
+        Args:
+          | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
+          | { role_name_param: string; user_id_param: string }
         Returns: boolean
       }
     }
